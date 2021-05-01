@@ -27,7 +27,15 @@ import {
   Spinner,
   Alert,
   AlertIcon,
-  Select
+  Select,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverFooter,
+  PopoverArrow,
+  PopoverCloseButton,
 } from "@chakra-ui/react"
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 
@@ -74,6 +82,7 @@ class MintPage extends React.Component {
 
       itoken.events.TransferSingle({
         filter: {
+          from: '0x0000000000000000000000000000000000000'
         },
         fromBlock: 'latest'
       }, this.handleEvents);
@@ -240,16 +249,18 @@ class MintPage extends React.Component {
         returnValues: res.returnValues,
         metadata: metadata
       }
-
-
-      const balance = await this.props.itoken.methods.balanceOf(this.props.coinbase,res.returnValues._id).call();
-      const creator = await this.props.itoken.methods.creators(res.returnValues._id).call();
-      if(creator.toLowerCase() === this.props.coinbase.toLowerCase() && !this.state.savedBlobs.includes(JSON.stringify(obj))){
-        this.state.savedBlobs.push(JSON.stringify(obj));
-        await this.forceUpdate();
-      }
       if (!this.state.allSnowflakes.includes(JSON.stringify(obj))) {
         this.state.allSnowflakes.push(JSON.stringify(obj));
+        await this.forceUpdate();
+      }
+      if(!this.props.coinbase){
+        return
+      }
+      const balance = await this.props.itoken.methods.balanceOf(this.props.coinbase,res.returnValues._id).call();
+      const creator = await this.props.itoken.methods.creators(res.returnValues._id).call();
+
+      if(creator.toLowerCase() === this.props.coinbase.toLowerCase() && !this.state.savedBlobs.includes(JSON.stringify(obj))){
+        this.state.savedBlobs.push(JSON.stringify(obj));
         await this.forceUpdate();
       }
       if(this.props.rewards){
@@ -362,11 +373,11 @@ class MintPage extends React.Component {
             <Box align="center">
               <div id="icon" style={{width: '150px'}}></div>
               <Text>
-                <p>Select the name and type of your Snowflake and claim it!</p>
+                <p>Select the name of your Snowflake and claim it!</p>
                 <p><small>There are {200000 - this.state.allSnowflakes.length} snowflakes to be minted</small></p>
                 <Input placeholder="Snowflake's Name" size="md" id="input_name" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} style={{marginBottom: '10px'}}/>
                 <Input placeholder="Welcome message (optional)" size="md" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} name="description" style={{marginBottom: '10px'}}/>
-                <Input placeholder="Creator's royalites (default 5%)" size="md" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} name="royalites" style={{marginBottom: '10px'}}/>
+                {/*<Input placeholder="Creator's royalites (default 5%)" size="md" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} name="royalites" style={{marginBottom: '10px'}}/>*/}
 
                 {
                   (
@@ -408,51 +419,59 @@ class MintPage extends React.Component {
               this.state.savedBlobs?.map((string) => {
                 const blob = JSON.parse(string);
                 return(
-                    <LinkBox
-                      // h="200"
-                      rounded="2xl"
-                      p="5"
-                      borderWidth="1px"
-                      _hover={{ boxShadow: '2xl' }}
-                      role="group"
-                      as={Link}
-                      target="_blank"
-                      href={`https://epor.io/tokens/${this.props.itoken.options.address}/${blob.returnValues._id}`}
-                    >
-                      <Text
-                        fontSize="sm"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="space-between"
+                  <Box
+                    rounded="2xl"
+                    p="5"
+                    borderWidth="1px"
+                    _hover={{ boxShadow: '2xl', background: this.state.cardHoverBg }}
+                  >
+                    <Popover>
+                      <PopoverTrigger>
+                      <LinkBox
+                        // h="200"
+                        role="group"
+                        as={Link}
                       >
-                        <LinkOverlay
-                          style={{ fontWeight: 600 }}
-                          href={blob.url}
+                        <Text
+                          fontSize="sm"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="space-between"
                         >
-                          {blob.metadata.name}
-                        </LinkOverlay>
-                      </Text>
-                      <Divider mt="4" />
-                      {
-                        (
-                          blob.metadata.image.includes('ipfs://') ?
-                          (
-                            <center>
-                              <object type="text/html"
-                              data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
-                              width="196px"
-                              style={{borderRadius: "100px"}}>
-                              </object>
-                            </center>
-                          ) :
-                          (
-                            <center>
-                              <img src={blob.metadata.image} width='196px' alt=""  style={{borderRadius: "100px"}} />
-                            </center>
-                          )
-                        )
-                      }
-                    </LinkBox>
+                          <LinkOverlay
+                            style={{fontWeight: 600 }}
+                            href={blob.url}
+                          >
+                            {blob.metadata.name}
+                          </LinkOverlay>
+                        </Text>
+                        <Divider mt="4" />
+                        <Center>
+                          <object type="text/html"
+                          data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
+                          width="196px"
+                          style={{borderRadius: "100px"}}>
+                          </object>
+                        </Center>
+
+                      </LinkBox>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <PopoverArrow />
+                        <PopoverCloseButton />
+                        <PopoverHeader>{blob.metadata.name}</PopoverHeader>
+                        <PopoverBody>
+                          {blob.metadata.description}
+                        </PopoverBody>
+                        <PopoverFooter>
+                          <p><small>Token ID: {blob.returnValues._id}</small></p>
+                          <p><small><Link href={`https://epor.io/tokens/${this.props.itoken.options.address}/${blob.returnValues._id}`} target="_blank">View on Epor.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
+                          <p><small><Link href={`https://unifty.io/xdai/collectible.html?collection=${this.props.itoken.options.address}&id=${blob.returnValues._id}`} target="_blank">View on Unifty.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
+                        </PopoverFooter>
+
+                      </PopoverContent>
+                    </Popover>
+                  </Box>
                 )
               })
             }

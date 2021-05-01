@@ -212,6 +212,7 @@ class App extends React.Component {
 
   checkTokens = async () => {
     const itoken = this.state.itoken;
+
     const lastId = await itoken.methods.totalSupply().call();
     const results = [];
     for(let i = 1;i<=lastId;i++){
@@ -369,7 +370,7 @@ class App extends React.Component {
                                 <Avatar
                                   size={'xl'}
                                   src={
-                                    'https://ipfs.io/ipfs/QmeVRmVLPqUNZUKERq14uXPYbyRoUN7UE8Sha2Q4rT6oyF'
+                                    'https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu'
                                   }
                                 />
                                 <p>Please connect to xDai network</p>
@@ -427,7 +428,7 @@ class App extends React.Component {
                               <Avatar
                                 size={'xl'}
                                 src={
-                                  'https://ipfs.io/ipfs/QmeVRmVLPqUNZUKERq14uXPYbyRoUN7UE8Sha2Q4rT6oyF'
+                                  'https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu'
                                 }
                               />
                               <p>Please connect to xDai network</p>
@@ -481,7 +482,7 @@ class App extends React.Component {
                               <Avatar
                                 size={'xl'}
                                 src={
-                                  'https://ipfs.io/ipfs/QmeVRmVLPqUNZUKERq14uXPYbyRoUN7UE8Sha2Q4rT6oyF'
+                                  'https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu'
                                 }
                               />
                               <p>Please connect to xDai network</p>

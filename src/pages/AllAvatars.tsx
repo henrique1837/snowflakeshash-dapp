@@ -23,7 +23,16 @@ import {
   Link,
   Image,
   Center,
-  Spinner
+  Spinner,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverFooter,
+  PopoverArrow,
+  PopoverCloseButton,
+  Select
 } from "@chakra-ui/react"
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 
@@ -48,18 +57,28 @@ class OwnedAvatars extends React.Component {
     //await this.props.initWeb3();
     const promises = [];
     const results = await this.props.checkTokens();
-    for(let res of results){
+    const totalPages = (results.length/10);
+    const pages = [];
+    for(let i = 0;i<totalPages;i++){
+      pages.push(i);
+    }
+    this.setState({
+      pages: pages
+    })
+    for(let res of results.filter(item => {if(item.returnValues._id <= 10){return(item)}})){
       promises.push(this.handleEvents(null,res));
     }
     await Promise.all(promises);
     const itoken = this.props.itoken;
     const tokenLikes = this.props.tokenLikes;
-
+    /*
     itoken.events.TransferSingle({
       filter: {
+        from: '0x0000000000000000000000000000000000000'
       },
       fromBlock: 'latest'
     }, this.handleEvents);
+    */
     if(tokenLikes){
       tokenLikes.events.LikeOrUnlike({
         filter:{
@@ -161,6 +180,33 @@ class OwnedAvatars extends React.Component {
     this.state.loadingLikes[id] =  false
     await this.forceUpdate();
   }
+
+  changePage = async (e) => {
+    this.setState({
+      savedBlobs: [],
+      page: e.target.value
+    });
+    const promises = [];
+    const results = await this.props.checkTokens();
+    const totalPages = (results.length/10);
+    const pages = [];
+    for(let i = 0;i<totalPages;i++){
+      pages.push(i);
+    }
+    this.setState({
+      pages: pages
+    })
+    for(let res of results){
+      if(res.returnValues._id > 10*Number(e.target.value) &&
+         res.returnValues._id <= 10*(Number(e.target.value)+1)){
+
+           promises.push(this.handleEvents(null,res));
+
+      }
+    }
+    await Promise.all(promises);
+
+  }
   render(){
     return(
         <Box>
@@ -169,6 +215,17 @@ class OwnedAvatars extends React.Component {
             <Heading>All Snowflakes generated</Heading>
             </Box>
             <Box>
+            <Box>
+            <Select placeholder="Select page" onChange={this.changePage}>
+              {
+                this.state.pages?.map(item => {
+                  return(
+                    <option value={item}>Page {item+1} - From ID {item*10 + 1} to {(item+1)*10}</option>
+                  )
+                })
+              }
+            </Select>
+            </Box>
             <SimpleGrid
               columns={{ sm: 1, md: 5 }}
               spacing="40px"
@@ -185,36 +242,51 @@ class OwnedAvatars extends React.Component {
                     borderWidth="1px"
                     _hover={{ boxShadow: '2xl', background: this.state.cardHoverBg }}
                   >
-                    <LinkBox
-                      // h="200"
-                      role="group"
-                      as={Link}
-                      href={`https://epor.io/tokens/${this.props.itoken.options.address}/${blob.returnValues._id}`}
-                      isExternal
-                    >
-                      <Text
-                        fontSize="sm"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="space-between"
+                    <Popover>
+                      <PopoverTrigger>
+                      <LinkBox
+                        // h="200"
+                        role="group"
+                        as={Link}
                       >
-                        <LinkOverlay
-                          style={{fontWeight: 600 }}
-                          href={blob.url}
+                        <Text
+                          fontSize="sm"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="space-between"
                         >
-                          {blob.metadata.name}
-                        </LinkOverlay>
-                      </Text>
-                      <Divider mt="4" />
-                      <center>
-                        <object type="text/html"
-                        data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
-                        width="196px"
-                        style={{borderRadius: "100px"}}>
-                        </object>
-                      </center>
+                          <LinkOverlay
+                            style={{fontWeight: 600 }}
+                          >
+                            {blob.metadata.name}
+                          </LinkOverlay>
+                        </Text>
+                        <Divider mt="4" />
+                        <Center>
+                          <object type="text/html"
+                          data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
+                          width="196px"
+                          style={{borderRadius: "100px"}}>
+                          </object>
+                        </Center>
 
-                    </LinkBox>
+                      </LinkBox>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <PopoverArrow />
+                        <PopoverCloseButton />
+                        <PopoverHeader>{blob.metadata.name}</PopoverHeader>
+                        <PopoverBody>
+                          {blob.metadata.description}
+                        </PopoverBody>
+                        <PopoverFooter>
+                          <p><small>Token ID: {blob.returnValues._id}</small></p>
+                          <p><small><Link href={`https://epor.io/tokens/${this.props.itoken.options.address}/${blob.returnValues._id}`} target="_blank">View on Epor.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
+                          <p><small><Link href={`https://unifty.io/xdai/collectible.html?collection=${this.props.itoken.options.address}&id=${blob.returnValues._id}`} target="_blank">View on Unifty.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
+                        </PopoverFooter>
+
+                      </PopoverContent>
+                    </Popover>
                     <Divider mt="4" />
                     <Center>
                       <Text>
