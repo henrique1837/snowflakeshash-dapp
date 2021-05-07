@@ -66,9 +66,11 @@ class OwnedAvatars extends React.Component {
       pages: pages
     })
     for(let res of results.filter(item => {if(item.returnValues._id <= 10){return(item)}})){
+      console.log(res)
       promises.push(this.handleEvents(null,res));
     }
     await Promise.all(promises);
+    await this.forceUpdate();
     const itoken = this.props.itoken;
     const tokenLikes = this.props.tokenLikes;
     /*
@@ -93,7 +95,7 @@ class OwnedAvatars extends React.Component {
     try {
       const web3 = this.props.web3;
       let uri = await this.props.itoken.methods.uri(res.returnValues._id).call();
-      console.log(uri)
+      //console.log(uri)
       if(uri.includes("ipfs://ipfs/")){
         uri = uri.replace("ipfs://ipfs/", "")
       } else {
@@ -101,18 +103,20 @@ class OwnedAvatars extends React.Component {
       }
       let likes = 0;
       let liked;
+      console.log(res);
       if(this.props.tokenLikes){
+        console.log(res.returnValues)
         likes = await this.props.tokenLikes.methods.likes(res.returnValues._id).call();
         if(this.props.coinbase){
           liked = await this.props.tokenLikes.methods.liked(this.props.coinbase,res.returnValues._id).call();
         }
       }
-      console.log(uri)
-      console.log(await (await fetch(`https://ipfs.io/ipfs/${uri}`)).text())
+      //console.log(uri)
+      //console.log(await (await fetch(`https://ipfs.io/ipfs/${uri}`)).text())
       const metadata = JSON.parse(await (await fetch(`https://ipfs.io/ipfs/${uri}`)).text());
 
 
-      console.log(metadata)
+      //console.log(metadata)
       const obj = {
         returnValues: res.returnValues,
         metadata: metadata
@@ -124,7 +128,7 @@ class OwnedAvatars extends React.Component {
                                                   likes: likes,
                                                   liked: liked
                                                 };
-      await this.forceUpdate();
+
 
     } catch (err) {
       console.log(err);
@@ -132,7 +136,9 @@ class OwnedAvatars extends React.Component {
   }
 
   handleLikes = async (err,res) => {
-
+    if(!res){
+      return
+    }
     let likes = 0;
     let liked;
     if(this.props.tokenLikes){
@@ -151,6 +157,7 @@ class OwnedAvatars extends React.Component {
     this.state.loadingLikes[res.returnValues.id] =  false
     await this.forceUpdate();
   }
+
   like = async(id) => {
     try{
       this.state.loadingLikes[id] =  true
@@ -182,6 +189,7 @@ class OwnedAvatars extends React.Component {
   }
 
   changePage = async (e) => {
+
     this.setState({
       savedBlobs: [],
       page: e.target.value
@@ -205,8 +213,9 @@ class OwnedAvatars extends React.Component {
       }
     }
     await Promise.all(promises);
-
+    await this.forceUpdate();
   }
+
   render(){
     return(
         <Box>

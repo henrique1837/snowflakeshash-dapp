@@ -72,7 +72,13 @@ class App extends React.Component {
   componentDidMount = async () => {
     const hasLogged = localStorage.getItem('logged');
     if(hasLogged){
-      await this.connectWeb3();
+      if(window.ethereum?.isMetaMask){
+        if(! await window.ethereum._metamask.isUnlocked()){
+          await this.initWeb3();
+          return
+        }
+        await this.connectWeb3();
+      }
     } else {
       await this.initWeb3();
     }
@@ -109,16 +115,7 @@ class App extends React.Component {
       if(!address && coinbase){
         address = coinbase;
       }
-      console.log(address)
-      /*
-      const profile = await getProfile(address);
-      const blockie = new Image();
-      blockie.src = makeBlockie(address);
-      let img = blockie.src;
-      if(profile.image){
-        img = profile.image
-      }
-      */
+
       this.setState({
         web3: web3,
         itoken: itoken,
@@ -141,18 +138,21 @@ class App extends React.Component {
       loading: true
     });
     let provider;
-    if(window.ethereum?.isMetamask){
+
+    if(window.ethereum?.isMetaMask){
       provider = await detectEthereumProvider();
-      if(!provider._metamask.isUnlocked()){
+      if(! await provider._metamask.isUnlocked()){
         alert("Please unlock your metamask first");
         this.setState({
           loading: false
         });
+        await this.initWeb3();
         return
       }
     } else {
       provider = window.ethereum;
     }
+
     if(provider){
       try{
         await provider.request({ method: 'eth_requestAccounts' });
@@ -261,7 +261,32 @@ class App extends React.Component {
         rpcUrls: ["https://rpc.xdaichain.com/"],
         blockExplorerUrls: 'https://blockscout.com/xdai/mainnet'
       }
-      await this.state.provider.request({method: 'wallet_addEthereumChain', params:data})
+      await window.ethereum.request({
+    "jsonrpc": "2.0",
+    "method": "wallet_addEthereumChain",
+    "params": [
+        {
+            "chainId": "0x64",
+            "chainName": "xDAI Chain",
+            "rpcUrls": [
+                "https://dai.poa.network"
+            ],
+            "iconUrls": [
+                "https://xdaichain.com/fake/example/url/xdai.svg",
+                "https://xdaichain.com/fake/example/url/xdai.png"
+            ],
+            "nativeCurrency": {
+                "name": "xDAI",
+                "symbol": "xDAI",
+                "decimals": 18
+            },
+            "blockExplorerUrls": [
+                "https://blockscout.com/poa/xdai/"
+            ]
+        }
+    ],
+    "id": 0
+})
     } catch(err){
 
     }
@@ -312,6 +337,7 @@ class App extends React.Component {
                             <p>Rinkeby ERC1155 at <Link href={`https://rinkeby.etherscan.io/address/${ERC1155.rinkeby}`} isExternal>{ERC1155.rinkeby} <ExternalLinkIcon mx="2px" /></Link></p>
                             <br/>
                             <p>This project uses "Hydro-Snowflake-Identicon-Generator" package from <Link href="https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator" isExternal>https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator <ExternalLinkIcon mx="2px" /></Link> and can be copied / modified by anyone.</p>
+                            <button onClick={this.addNetwork}>Add</button>
                           </Text>
                           <Center>
                             <Image boxSize="250px" src="https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu" />

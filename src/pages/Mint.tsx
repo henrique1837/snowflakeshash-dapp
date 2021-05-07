@@ -113,7 +113,6 @@ class MintPage extends React.Component {
           }
 
           hasNotConnected = false;
-
         }
       },500);
 
@@ -147,6 +146,9 @@ class MintPage extends React.Component {
         });
         return;
       }
+      this.setState({
+        mintingMsg: <p><small>Checking all tokens already minted ... </small></p>
+      });
       const results = await this.props.checkTokens();
       const metadatas = []
       for(let res of results){
@@ -176,7 +178,9 @@ class MintPage extends React.Component {
         });
         return;
       }
-
+      this.setState({
+        mintingMsg: <p><small>Storing image and metadata at IPFS ... </small></p>
+      });
       const ipfs = this.props.ipfs;
       const imgres = await ipfs.add(document.getElementById('icon').innerHTML);
       metadatas.map(obj => {
@@ -205,7 +209,9 @@ class MintPage extends React.Component {
       const res = await ipfs.add(JSON.stringify(metadata));
       //const uri = res[0].hash;
       const uri = res[0].hash;
-
+      this.setState({
+        mintingMsg: <p><small>Approve transaction ... </small></p>
+      });
       const id = Number(await this.props.itoken.methods.totalSupply().call()) + 1;
       console.log(id)
 
@@ -220,6 +226,10 @@ class MintPage extends React.Component {
         from: this.props.coinbase,
         value: 10 ** 18,
         gasPrice: 1000000000
+      }).once('transactionHash',(hash) => {
+        this.setState({
+          mintingMsg: <p><small>Transaction <a href={`https://blockscout.com/xdai/mainnet/tx/${hash}`} target="_blank" >{hash}</a> sent, wait confirmation ...</small></p>
+        });
       });
       this.setState({
         minting: false
@@ -315,53 +325,6 @@ class MintPage extends React.Component {
               <Heading>Snowflakes</Heading>
             </Box>
 
-            {
-              /*
-              (
-                this.state.toClaim?.length > 0 &&
-                (
-                  !this.state.doingClaim ?
-                  (
-                    <Center>
-                    <Alert status="info">
-                      <AlertIcon />You have rewards to claim!{' '}
-                      <Button onClick={async () => {
-                        console.log(this.state.toClaim);
-                        const ids = this.state.toClaim.map(item => {
-                          return(item.id);
-                        });
-                        this.setState({
-                          doingClaim: true
-                        })
-                        const hash = await this.props.claim(ids);
-                        const results = await this.props.checkTokens();
-                        const claimed = [];
-                        for(let res of results){
-                          claimed.push(this.props.checkClaimed(res.returnValues._id));
-                        }
-                        let toClaim = await Promise.all(claimed);
-                        toClaim = toClaim.filter(item => {
-                          if(item.hasClaimed === false && this.props.coinbase.toLowerCase() === item.creator.toLowerCase()){
-                            return(item);
-                          }
-                        });
-                        this.setState({
-                          doingClaim: false,
-                          toClaim: toClaim
-                        })
-                      }}>Claim</Button>
-                    </Alert>
-                    </Center>
-
-                  ) :
-                  (
-                    <Spinner size="xl" />
-                  )
-
-                )
-              )
-              */
-            }
             <Box align="center">
               <Text fontSize="sm">
                 <p>The <b>Snowflakes</b> are Avatars waiting to be claimed by anyone on xDai Chain.</p>
@@ -388,7 +351,10 @@ class MintPage extends React.Component {
                         <Button onClick={this.mint}>Claim</Button>
                       ) :
                       (
+                        <>
                         <Spinner size="xl" />
+                        {this.state.mintingMsg}
+                        </>
                       )
                     ) :
                     (
@@ -397,7 +363,9 @@ class MintPage extends React.Component {
                         <Button onClick={this.props.connectWeb3}>Connect Wallet</Button>
                       ) :
                       (
+                        <>
                         <Spinner size="xl" />
+                        </>
                       )
                     )
                   )
