@@ -32,11 +32,12 @@ import {
   PopoverFooter,
   PopoverArrow,
   PopoverCloseButton,
-  Select
+  Select,
+  Avatar
 } from "@chakra-ui/react"
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 
-import Avatar from 'avataaars';
+import makeBlockie from 'ethereum-blockies-base64';
 
 
 class OwnedAvatars extends React.Component {
@@ -114,12 +115,14 @@ class OwnedAvatars extends React.Component {
       //console.log(uri)
       //console.log(await (await fetch(`https://ipfs.io/ipfs/${uri}`)).text())
       const metadata = JSON.parse(await (await fetch(`https://ipfs.io/ipfs/${uri}`)).text());
+      const creator = await this.props.itoken.methods.creators(res.returnValues._id).call();
 
 
       //console.log(metadata)
       const obj = {
         returnValues: res.returnValues,
-        metadata: metadata
+        metadata: metadata,
+        creator: creator
       }
       if (!this.state.savedBlobs.includes(JSON.stringify(obj))) {
         this.state.savedBlobs.push(JSON.stringify(obj));
@@ -221,133 +224,142 @@ class OwnedAvatars extends React.Component {
         <Box>
           <VStack spacing={12}>
             <Box>
-            <Heading>All Snowflakes generated</Heading>
+              <Heading>All Snowflakes generated</Heading>
             </Box>
             <Box>
+              <Select placeholder="Select page" onChange={this.changePage}>
+                {
+                  this.state.pages?.map(item => {
+                    return(
+                      <option value={item}>Page {item+1} - From ID {item*10 + 1} to {(item+1)*10}</option>
+                    )
+                  })
+                }
+              </Select>
+            </Box>
             <Box>
-            <Select placeholder="Select page" onChange={this.changePage}>
+              <SimpleGrid
+                columns={{ sm: 1, md: 5 }}
+                spacing="40px"
+                mb="20"
+                justifyContent="center"
+              >
               {
-                this.state.pages?.map(item => {
+                this.state.savedBlobs?.map((string) => {
+                  const blob = JSON.parse(string);
                   return(
-                    <option value={item}>Page {item+1} - From ID {item*10 + 1} to {(item+1)*10}</option>
+                    <Box
+                      rounded="2xl"
+                      p="5"
+                      borderWidth="1px"
+                      _hover={{ boxShadow: '2xl', background: this.state.cardHoverBg }}
+                    >
+                      <Popover>
+                        <PopoverTrigger>
+                        <LinkBox
+                          // h="200"
+                          role="group"
+                          as={Link}
+                        >
+                          <Text
+                            fontSize="sm"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="space-between"
+                          >
+                            <LinkOverlay
+                              style={{fontWeight: 600 }}
+                            >
+                              {blob.metadata.name}
+                            </LinkOverlay>
+                          </Text>
+                          <Divider mt="4" />
+                          <Center>
+                            <object type="text/html"
+                            data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
+                            width="196px"
+                            style={{borderRadius: "100px"}}>
+                            </object>
+                          </Center>
+
+                        </LinkBox>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <PopoverArrow />
+                          <PopoverCloseButton />
+                          <PopoverHeader>{blob.metadata.name}</PopoverHeader>
+                          <PopoverBody>
+                            {blob.metadata.description}
+                          </PopoverBody>
+                          <PopoverFooter>
+                            <p><small>Token ID: {blob.returnValues._id}</small></p>
+                            <p style={{
+                              whiteSpace: "nowrap",
+                              width: "100%",                   /* IE6 needs any width */
+                              overflow: "hidden",              /* "overflow" value must be different from  visible"*/
+                              oTextOverflow: "ellipsis",    /* Opera < 11*/
+                              textOverflow:   "ellipsis",    /* IE, Safari (WebKit), Opera >= 11, FF > 6 */
+                            }}>
+                              <small>Creator: <Link href={`https://blockscout.com/poa/xdai/address/${blob.creator}`} isExternal><Avatar src={makeBlockie(blob.creator)} size='sm' alt="" />{' '}{blob.creator}</Link></small>
+                            </p>
+                            <p><small><Link href={`https://epor.io/tokens/${this.props.itoken.options.address}/${blob.returnValues._id}`} target="_blank">View on Epor.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
+                            <p><small><Link href={`https://unifty.io/xdai/collectible.html?collection=${this.props.itoken.options.address}&id=${blob.returnValues._id}`} target="_blank">View on Unifty.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
+                          </PopoverFooter>
+
+                        </PopoverContent>
+                      </Popover>
+                      <Divider mt="4" />
+                      <Center>
+                        <Text>
+                          <p>Likes: {this.state.likes[blob.returnValues._id].likes}</p>
+                        </Text>
+                      </Center>
+                      <Center>
+
+                      {
+                        (
+                          this.props.coinbase &&
+                          (
+                            !this.state.loadingLikes[blob.returnValues._id] ?
+                            (
+                              !this.state.likes[blob.returnValues._id].liked ?
+                              (
+                                <Button
+                                  variant="heavy"
+                                  leftIcon={<Image boxSize="25px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAC3UlEQVRoge2ZPWgUQRTHf2f0NBYGJTYSxELwExKCwYA2KgiKpFHsLC1EMViIFiIGK7HRRkUQJJigCGJhYaEoKIqNBDvNKRJN/Iz4hacYE4t3x769u72dm7nb2eJ+sDDsvPvP/92+/ZgZaNIk9cwBTgHvgXfAHWCHV0c1chqYqXAM+DRlSjuQp3ICM8ABf9bM2ENg9gnQAVxX574Bbd7cGTBEYPZo4VwWeKnO7/VjLZ4W4DOB0S7V16/OX03emhm9BCbHgYzq61R9z10GmeXy4xi2qfZtxGyRV6q9pIEenHhK8C/vKunLqr58wr6M6CMw+JvyJ02H6p9M1lo8C4EJAoMXKsRsVf0jyVkz4zKBuQkkoVIOqZjB5KzFs53wm7YvIu6GitmfjLV42oAxAmNXIuJmA19V3IpE3BlwicDUR2BxRNwGFfc6GWvxbAGmCYztrBI7oOIuNtpYa2HAHDBFuL6jjmsxmo+r/PYv8BYYRq6Us/mHhqZNSqfI9xr0ziH3jBX6Upseuw10TyIvN1PN87YJ5JTIYWRqWAk9mCstwFrgVonuRhsxXfPZKnH1TKBIBripdIdtREyNNSIBgG6lO2Yj4DuBBUr3V1RQI+cDrixV7S9RQWlOYL1qR36xpjmBzap9z0bA9z0wrnS7bQR8JrBKaU5SpVLSWkK6fO4jH4oVSWsCm1Tbqv7BXwllgE9Kc42tkK8EupTeB8ILYmWksYR0/d8l5o9JYwJ1qX/wU0LzgR9Kb7mLmI8E9imtZ65iJvMBvcb5D1jkMN4ywsvx/Q5aQHhGdoTyJLLIpoW+AtPIcvkgsn3UQ/RMTrOyZLwcMNc1gRMl5myPPPAIOItsOa1GJuqtyBfnGcL7aHlgnat5qG1VYgTZA/vjmOxPZOG3bswDjgOjlK8LTQEvgGOFOJDL3gscRPbHRmsw/wD5iKuJqm+5OtGO3As9SGl0IrOtPPAGMT6E4zO/SRNL/gNVZHTiig40MgAAAABJRU5ErkJggg=="/>}
+                                  aria-label="Like it"
+                                  onClick={() => {
+                                    this.like(blob.returnValues._id)
+                                  }}
+                                >
+                                  Like it
+                                </Button>
+                              ):
+                              (
+                                <Button
+                                  variant="heavy"
+                                  aria-label="Unlike it"
+                                  onClick={() => {
+                                    this.unlike(blob.returnValues._id)
+                                  }}
+                                >
+                                  <Image boxSize="25px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABJ0lEQVRIie3UsSuFYRTH8Q/uILtbDEzsEpMk2y13MIlBBuVfMBopE4tSMpDMZgwWZVTKIOUWWVGSWwz3eev1dnlc3lsGvzqd87yn5/c9w3kf/pBacI87bKM/b0Af3lLxhKE8AXPB+AKnoT6MXWptADAS8hnWQj2cF2Aes6E+V5seXn4LaMUqNlHAPi7RG/pXMUDhi14HdjCJKtZxFHoDIR/HAGkl25FoN5wfsIiJEGXc+rhR6aiglJi0ZADpb89ox0IwTDSIpciwFfTEAMm5HDHL6iDt08ia/kh5A4ohPzYLMBXyXjMARYzjFcvNAMyo/VdbuM4b0IUxtelX0o28ANNok5k+L0A3RtWZPqvsU1Hx+XNQLzZik2QBJdx8w7iKE3TGAP+qq3d99VWqfM7/ZgAAAABJRU5ErkJggg=="/>
+                                </Button>
+                              )
+                            ) :
+                            (
+                              <Spinner />
+                            )
+
+                          )
+                        )
+                      }
+                      </Center>
+                    </Box>
                   )
                 })
               }
-            </Select>
-            </Box>
-            <SimpleGrid
-              columns={{ sm: 1, md: 5 }}
-              spacing="40px"
-              mb="20"
-              justifyContent="center"
-            >
-            {
-              this.state.savedBlobs?.map((string) => {
-                const blob = JSON.parse(string);
-                return(
-                  <Box
-                    rounded="2xl"
-                    p="5"
-                    borderWidth="1px"
-                    _hover={{ boxShadow: '2xl', background: this.state.cardHoverBg }}
-                  >
-                    <Popover>
-                      <PopoverTrigger>
-                      <LinkBox
-                        // h="200"
-                        role="group"
-                        as={Link}
-                      >
-                        <Text
-                          fontSize="sm"
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="space-between"
-                        >
-                          <LinkOverlay
-                            style={{fontWeight: 600 }}
-                          >
-                            {blob.metadata.name}
-                          </LinkOverlay>
-                        </Text>
-                        <Divider mt="4" />
-                        <Center>
-                          <object type="text/html"
-                          data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
-                          width="196px"
-                          style={{borderRadius: "100px"}}>
-                          </object>
-                        </Center>
-
-                      </LinkBox>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <PopoverArrow />
-                        <PopoverCloseButton />
-                        <PopoverHeader>{blob.metadata.name}</PopoverHeader>
-                        <PopoverBody>
-                          {blob.metadata.description}
-                        </PopoverBody>
-                        <PopoverFooter>
-                          <p><small>Token ID: {blob.returnValues._id}</small></p>
-                          <p><small><Link href={`https://epor.io/tokens/${this.props.itoken.options.address}/${blob.returnValues._id}`} target="_blank">View on Epor.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
-                          <p><small><Link href={`https://unifty.io/xdai/collectible.html?collection=${this.props.itoken.options.address}&id=${blob.returnValues._id}`} target="_blank">View on Unifty.io{' '}<ExternalLinkIcon fontSize="18px" /></Link></small></p>
-                        </PopoverFooter>
-
-                      </PopoverContent>
-                    </Popover>
-                    <Divider mt="4" />
-                    <Center>
-                      <Text>
-                        <p>Likes: {this.state.likes[blob.returnValues._id].likes}</p>
-                      </Text>
-                    </Center>
-                    <Center>
-
-                    {
-                      (
-                        this.props.coinbase &&
-                        (
-                          !this.state.loadingLikes[blob.returnValues._id] ?
-                          (
-                            !this.state.likes[blob.returnValues._id].liked ?
-                            (
-                              <Button
-                                variant="heavy"
-                                leftIcon={<Image boxSize="25px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAC3UlEQVRoge2ZPWgUQRTHf2f0NBYGJTYSxELwExKCwYA2KgiKpFHsLC1EMViIFiIGK7HRRkUQJJigCGJhYaEoKIqNBDvNKRJN/Iz4hacYE4t3x769u72dm7nb2eJ+sDDsvPvP/92+/ZgZaNIk9cwBTgHvgXfAHWCHV0c1chqYqXAM+DRlSjuQp3ICM8ABf9bM2ENg9gnQAVxX574Bbd7cGTBEYPZo4VwWeKnO7/VjLZ4W4DOB0S7V16/OX03emhm9BCbHgYzq61R9z10GmeXy4xi2qfZtxGyRV6q9pIEenHhK8C/vKunLqr58wr6M6CMw+JvyJ02H6p9M1lo8C4EJAoMXKsRsVf0jyVkz4zKBuQkkoVIOqZjB5KzFs53wm7YvIu6GitmfjLV42oAxAmNXIuJmA19V3IpE3BlwicDUR2BxRNwGFfc6GWvxbAGmCYztrBI7oOIuNtpYa2HAHDBFuL6jjmsxmo+r/PYv8BYYRq6Us/mHhqZNSqfI9xr0ziH3jBX6Upseuw10TyIvN1PN87YJ5JTIYWRqWAk9mCstwFrgVonuRhsxXfPZKnH1TKBIBripdIdtREyNNSIBgG6lO2Yj4DuBBUr3V1RQI+cDrixV7S9RQWlOYL1qR36xpjmBzap9z0bA9z0wrnS7bQR8JrBKaU5SpVLSWkK6fO4jH4oVSWsCm1Tbqv7BXwllgE9Kc42tkK8EupTeB8ILYmWksYR0/d8l5o9JYwJ1qX/wU0LzgR9Kb7mLmI8E9imtZ65iJvMBvcb5D1jkMN4ywsvx/Q5aQHhGdoTyJLLIpoW+AtPIcvkgsn3UQ/RMTrOyZLwcMNc1gRMl5myPPPAIOItsOa1GJuqtyBfnGcL7aHlgnat5qG1VYgTZA/vjmOxPZOG3bswDjgOjlK8LTQEvgGOFOJDL3gscRPbHRmsw/wD5iKuJqm+5OtGO3As9SGl0IrOtPPAGMT6E4zO/SRNL/gNVZHTiig40MgAAAABJRU5ErkJggg=="/>}
-                                aria-label="Like it"
-                                onClick={() => {
-                                  this.like(blob.returnValues._id)
-                                }}
-                              >
-                                Like it
-                              </Button>
-                            ):
-                            (
-                              <Button
-                                variant="heavy"
-                                aria-label="Unlike it"
-                                onClick={() => {
-                                  this.unlike(blob.returnValues._id)
-                                }}
-                              >
-                                <Image boxSize="25px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABJ0lEQVRIie3UsSuFYRTH8Q/uILtbDEzsEpMk2y13MIlBBuVfMBopE4tSMpDMZgwWZVTKIOUWWVGSWwz3eev1dnlc3lsGvzqd87yn5/c9w3kf/pBacI87bKM/b0Af3lLxhKE8AXPB+AKnoT6MXWptADAS8hnWQj2cF2Aes6E+V5seXn4LaMUqNlHAPi7RG/pXMUDhi14HdjCJKtZxFHoDIR/HAGkl25FoN5wfsIiJEGXc+rhR6aiglJi0ZADpb89ox0IwTDSIpciwFfTEAMm5HDHL6iDt08ia/kh5A4ohPzYLMBXyXjMARYzjFcvNAMyo/VdbuM4b0IUxtelX0o28ANNok5k+L0A3RtWZPqvsU1Hx+XNQLzZik2QBJdx8w7iKE3TGAP+qq3d99VWqfM7/ZgAAAABJRU5ErkJggg=="/>
-                              </Button>
-                            )
-                          ) :
-                          (
-                            <Spinner />
-                          )
-
-                        )
-                      )
-                    }
-                    </Center>
-                  </Box>
-                )
-              })
-            }
-            </SimpleGrid>
+              </SimpleGrid>
             </Box>
           </VStack>
         </Box>

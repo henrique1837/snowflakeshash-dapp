@@ -65,6 +65,8 @@ class App extends React.Component {
     this.initWeb3 = this.initWeb3.bind(this);
     this.connectWeb3 = this.connectWeb3.bind(this);
     this.checkClaimed = this.checkClaimed.bind(this);
+    this.getMetadata = this.getMetadata.bind(this);
+
     this.claim = this.claim.bind(this);
     this.checkTokens = this.checkTokens.bind(this);
     this.addNetwork = this.addNetwork.bind(this);
@@ -209,7 +211,11 @@ class App extends React.Component {
 
   }
 
-
+  getMetadata = async(id) => {
+    const uriToken = await this.state.itoken.methods.uri(id).call();
+    const metadataToken = JSON.parse(await (await fetch(`https://ipfs.io/ipfs/${uriToken.replace("ipfs://","")}`)).text());
+    return(metadataToken)
+  }
   checkTokens = async () => {
     const itoken = this.state.itoken;
 
@@ -337,7 +343,6 @@ class App extends React.Component {
                             <p>Rinkeby ERC1155 at <Link href={`https://rinkeby.etherscan.io/address/${ERC1155.rinkeby}`} isExternal>{ERC1155.rinkeby} <ExternalLinkIcon mx="2px" /></Link></p>
                             <br/>
                             <p>This project uses "Hydro-Snowflake-Identicon-Generator" package from <Link href="https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator" isExternal>https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator <ExternalLinkIcon mx="2px" /></Link> and can be copied / modified by anyone.</p>
-                            <button onClick={this.addNetwork}>Add</button>
                           </Text>
                           <Center>
                             <Image boxSize="250px" src="https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu" />
@@ -363,6 +368,8 @@ class App extends React.Component {
                               itoken={this.state.itoken}
                               rewards={this.state.rewards}
                               checkClaimed={this.checkClaimed}
+                              getMetadata={this.getMetadata}
+
                               claim={this.claim}
                               web3={this.state.web3}
                               connectWeb3={this.connectWeb3}
