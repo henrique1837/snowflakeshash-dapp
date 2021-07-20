@@ -36,6 +36,7 @@ import {
   PopoverFooter,
   PopoverArrow,
   PopoverCloseButton,
+  Avatar as Av
 } from "@chakra-ui/react"
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 
@@ -57,13 +58,14 @@ class MintPage extends React.Component {
     supply: 1,
     royalites: 500,
     minting: false,
+    mintingMsg: '',
     toClaim: [],
-    type: "snowflakes"
+    type: "snowflakes",
+    canMint: true
   }
   constructor(props){
     super(props)
     this.randomize = this.randomize.bind(this);
-    this.handleEvents = this.handleEvents.bind(this);
     this.mint = this.mint.bind(this);
   }
   componentDidMount = async () => {
@@ -72,49 +74,13 @@ class MintPage extends React.Component {
       document.getElementById("input_name").focus();
       document.getElementById("input_name").select();
       this.randomize();
-      const promises = [];
-      const results = await this.props.checkTokens();
-      for(let res of results){
-        promises.push(this.handleEvents(null,res));
-      }
-      await Promise.all(promises)
-      const itoken = this.props.itoken;
-
-      itoken.events.TransferSingle({
-        filter: {
-          from: '0x0000000000000000000000000000000000000'
-        },
-        fromBlock: 'latest'
-      }, this.handleEvents);
-      let hasNotConnected = !this.props.coinbase;
       setInterval(async () => {
-        if(this.props.provider && hasNotConnected){
-          const promises = [];
-          const claimed = [];
-          const results = await this.props.checkTokens();
-          for(let res of results){
-            promises.push(this.handleEvents(null,res));
-            claimed.push(this.props.checkClaimed(res.returnValues._id));
-          }
-          await Promise.all(promises)
-          if(this.props.rewards){
-            let toClaim = await Promise.all(claimed);
-
-            console.log(toClaim)
-            toClaim = toClaim.filter(item => {
-              if(item.hasClaimed === false && this.props.coinbase.toLowerCase() === item.creator?.toLowerCase()){
-                return(item);
-              }
-            });
-            console.log(toClaim);
-            this.setState({
-              toClaim: toClaim
-            });
-          }
-
-          hasNotConnected = false;
+        if(this.props.savedBlobs.length !== this.state.allSnowflakes){
+          this.checkEvents();
         }
-      },500);
+      },1000);
+
+
 
     } catch(err){
 
@@ -150,12 +116,22 @@ class MintPage extends React.Component {
         mintingMsg: <p><small>Checking all tokens already minted ... </small></p>
       });
       const results = await this.props.checkTokens();
-      const metaPromises = []
-      for(let res of results){
-        const metadataToken = this.props.getMetadata(res.returnValues._id);
-        metaPromises.push(metadataToken)
+      let metadatas = this.props.savedBlobs.map(string => {
+        const obj = JSON.parse(string)
+        return(obj.metadata)
+      })
+
+      if(this.props.loadingAvatars){
+        const metaPromises = []
+        for(let res of results){
+          if(this.props.netId === 4 && res.returnValues._id === 32){
+            continue
+          }
+          const metadataToken = this.props.getMetadata(res.returnValues._id);
+          metaPromises.push(metadataToken)
+        }
+        metadatas = await Promise.all(metaPromises);
       }
-      const metadatas = await Promise.all(metaPromises);
       let cont = true;
       let dnaNotUsed = true;
       metadatas.map(obj => {
@@ -181,7 +157,6 @@ class MintPage extends React.Component {
       this.setState({
         mintingMsg: <p><small>Storing image and metadata at IPFS ... </small></p>
       });
-      const ipfs = this.props.ipfs;
       const imgres = await ipfs.add(document.getElementById('icon').innerHTML);
       metadatas.map(obj => {
         //const obj = JSON.parse(string);
@@ -230,61 +205,32 @@ class MintPage extends React.Component {
         this.setState({
           mintingMsg: <p><small>Transaction <a href={`https://blockscout.com/xdai/mainnet/tx/${hash}`} target="_blank" >{hash}</a> sent, wait confirmation ...</small></p>
         });
+      }).once('transactionHash',(hash) => {
+        this.setState({
+          mintingMsg: <p><small>Transaction <Link href={`https://blockscout.com/xdai/mainnet/tx/${hash}`} isExternal >{hash}</Link> sent, wait confirmation ...</small></p>
+        });
       });
       this.setState({
-        minting: false
+        mintingMsg: <p><small>Transaction confirmed!</small></p>
       });
+      setTimeout(() => {
+        this.setState({
+          minting: false
+        });
+      },2000);
     } catch(err){
-      console.log(err);
       this.setState({
-        minting: false
+        mintingMsg: <p><small>{err.message}</small></p>
       });
+      setTimeout(() => {
+        this.setState({
+          minting: false
+        });
+      },2000)
     }
   }
 
 
-  handleEvents = async (err, res) => {
-    try {
-      const web3 = this.props.web3;
-      let uri = await this.props.itoken.methods.uri(res.returnValues._id).call();
-      if(uri.includes("ipfs://ipfs/")){
-        uri = uri.replace("ipfs://ipfs/", "")
-      } else {
-        uri = uri.replace("ipfs://", "");
-      }
-
-      const metadata = JSON.parse(await (await fetch(`https://ipfs.io/ipfs/${uri}`)).text());
-
-      const obj = {
-        returnValues: res.returnValues,
-        metadata: metadata
-      }
-      if (!this.state.allSnowflakes.includes(JSON.stringify(obj))) {
-        this.state.allSnowflakes.push(JSON.stringify(obj));
-        await this.forceUpdate();
-      }
-      if(!this.props.coinbase){
-        return
-      }
-      const balance = await this.props.itoken.methods.balanceOf(this.props.coinbase,res.returnValues._id).call();
-      const creator = await this.props.itoken.methods.creators(res.returnValues._id).call();
-
-      if(creator.toLowerCase() === this.props.coinbase.toLowerCase() && !this.state.savedBlobs.includes(JSON.stringify(obj))){
-        this.state.savedBlobs.push(JSON.stringify(obj));
-        await this.forceUpdate();
-      }
-      if(this.props.rewards){
-        const claim = await this.props.checkClaimed(res.returnValues._id);
-        if(claim.hasClaimed === false && this.props.coinbase.toLowerCase() === claim.creator?.toLowerCase()){
-          this.state.toClaim.push(claim);
-          await this.forceUpdate();
-        }
-      }
-
-    } catch (err) {
-      console.log(err);
-    }
-  }
 
   handleOnChange = (e) => {
     e.preventDefault();
@@ -308,15 +254,50 @@ class MintPage extends React.Component {
       });
       document.getElementById('icon').innerHTML = '';
       document.getElementById('icon').appendChild(icon)
-
+      const metadatas = this.props.savedBlobs.map(str => {
+        const obj = JSON.parse(str);
+        return(obj.metadata);
+      });
+      let cont = true;
+      metadatas.map(obj => {
+        if(obj.name === e.target.value.trim()) {
+          cont = false
+        }
+      });
+      if(!cont){
+        this.setState({
+          canMint: false
+        });
+        return;
+      }
       this.setState({
         name: e.target.value.trim()
-      })
+      });
     } catch(err){
       console.log(err)
     }
   }
+  checkEvents = async () => {
 
+    this.state.allSnowflakes = this.props.savedBlobs;
+    this.state.allSnowflakes.map(async str => {
+      const obj = JSON.parse(str);
+
+      if(this.props.coinbase){
+        if(obj.creator.toLowerCase() === this.props.coinbase.toLowerCase() && !this.state.savedBlobs.includes(JSON.stringify(obj))){
+          this.state.savedBlobs.push(JSON.stringify(obj));
+        }
+
+      }
+      if(this.props.rewards !== undefined && this.props.coinbase){
+        const claim = await this.props.checkClaimed(obj.returnValues._id);
+        if(claim.hasClaimed === false && this.props.coinbase.toLowerCase() === claim.creator?.toLowerCase()){
+          this.state.toClaim.push(claim);
+        }
+      }
+    })
+    this.forceUpdate()
+  }
   render(){
     return(
         <Box>
@@ -348,7 +329,7 @@ class MintPage extends React.Component {
                     (
                       !this.state.minting ?
                       (
-                        <Button onClick={this.mint}>Claim</Button>
+                        this.state.canMint ? (<Button onClick={this.mint}>Claim</Button>) : ("Snowflake with that name already claimed")
                       ) :
                       (
                         <>
@@ -374,11 +355,29 @@ class MintPage extends React.Component {
               </Text>
             </Box>
             <Box>
-            <Heading>Snowflakes Created by you</Heading>
+            {
+              this.props.loadingAvatars &&
+              (
+                <Center>
+                 <VStack spacing={4}>
+                  <p>Loading all Snowflakes</p>
+                  <Spinner size="md" />
+                  </VStack>
+                </Center>
+              )
+            }
             </Box>
+            {
+              this.state.savedBlobs.length > 0 &&
+              (
+                <Box>
+                  <Heading>Snowflakes Created by you</Heading>
+                </Box>
+              )
+            }
             <Box>
             <SimpleGrid
-              columns={{ sm: 1, md: 5 }}
+              columns={{ sm: 1, md: 6 }}
               spacing="40px"
               mb="20"
               justifyContent="center"
@@ -415,11 +414,7 @@ class MintPage extends React.Component {
                         </Text>
                         <Divider mt="4" />
                         <Center>
-                          <object type="text/html"
-                          data={`https://ipfs.io/ipfs/${blob.metadata.image.replace("ipfs://","")}`}
-                          width="196px"
-                          style={{borderRadius: "100px"}}>
-                          </object>
+                          <Av src={blob.metadata.image.replace("ipfs://","https://ipfs.io/ipfs/")} size="2xl"/>
                         </Center>
 
                       </LinkBox>

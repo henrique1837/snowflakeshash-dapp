@@ -32,13 +32,22 @@ import {
   Center,
   Spinner,
   Avatar,
+  Tooltip
 } from "@chakra-ui/react"
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 import Web3 from 'web3';
-import detectEthereumProvider from '@metamask/detect-provider'
+import Web3Modal from "web3modal";
+import { getLegacy3BoxProfileAsBasicProfile } from '@ceramicstudio/idx'
 
-import IPFS from 'ipfs-http-client-lite';
+import Libp2p from 'libp2p'
+import Websockets from 'libp2p-websockets'
+import WebRTCStar from 'libp2p-webrtc-star'
+import { NOISE } from 'libp2p-noise'
+import Mplex from 'libp2p-mplex'
+import Bootstrap from 'libp2p-bootstrap'
+import Room from 'ipfs-pubsub-room';
+import Gossipsub from 'libp2p-gossipsub'
 
 import ERC1155 from './contracts/ItemsERC1155.json'
 import ERC20Rewards from './contracts/ERC20Rewards.json'
@@ -50,15 +59,27 @@ import OwnedAvatars from './pages/OwnedAvatars';
 import AllAvatars from './pages/AllAvatars';
 
 
-const ipfs = IPFS({
-  apiUrl: 'https://ipfs.infura.io:5001'
-})
 
+const providerOptions = {
+  injected: {
+    package: null
+  }
+};
+
+const web3Modal = new Web3Modal({
+  cacheProvider: true, // optional
+  providerOptions // required
+});
 
 class App extends React.Component {
 
   state = {
-    netId: 0x64
+    netId: 0x64,
+    savedBlobs: [],
+    creators: [],
+    likes: [],
+    loadingAvatars: true,
+    peersOnline: 0
   }
   constructor(props){
     super(props)
@@ -70,22 +91,28 @@ class App extends React.Component {
     this.claim = this.claim.bind(this);
     this.checkTokens = this.checkTokens.bind(this);
     this.addNetwork = this.addNetwork.bind(this);
+    this.initLibp2p = this.initLibp2p.bind(this);
   }
   componentDidMount = async () => {
-    const hasLogged = localStorage.getItem('logged');
-    if(hasLogged){
-      if(window.ethereum?.isMetaMask){
-        if(! await window.ethereum._metamask.isUnlocked()){
-          await this.initWeb3();
-          return
-        }
-        await this.connectWeb3();
-      }
+
+    if (web3Modal.cachedProvider) {
+      await this.connectWeb3();
     } else {
       await this.initWeb3();
     }
+    this.setState({
+      loading: false
+    });
+    await this.initiateContracts();
+
+    try{
+      await this.initLibp2p();
+    } catch(err){
+      console.log(err)
+    }
 
   }
+
 
 
   initWeb3 = async () => {
@@ -98,6 +125,7 @@ class App extends React.Component {
         web3 = new Web3("https://rpc.xdaichain.com/")
       }
       const netId = await web3.eth.net.getId();
+
       let itoken;
       let tokenLikes;
       if(netId === 4){
@@ -107,9 +135,6 @@ class App extends React.Component {
         itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.xdai);
         tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.xdai);
       }
-      this.setState({
-        netId: netId
-      })
       let address = window.location.search.split('?address=')[1];
       if(address?.includes('&rinkeby')){
         address = address.split("&rinkeby")[0];
@@ -121,13 +146,12 @@ class App extends React.Component {
       this.setState({
         web3: web3,
         itoken: itoken,
-        //profile: profile,
         address:address,
         coinbase: coinbase,
         tokenLikes: tokenLikes,
-        //img: img,
-        loading:false
+        netId: netId
       });
+
 
     }catch(err){
       console.log(err)
@@ -135,85 +159,97 @@ class App extends React.Component {
   }
 
   connectWeb3 = async () => {
-
-    this.setState({
-      loading: true
-    });
-    let provider;
-
-    if(window.ethereum?.isMetaMask){
-      provider = await detectEthereumProvider();
-      if(! await provider._metamask.isUnlocked()){
-        alert("Please unlock your metamask first");
-        this.setState({
-          loading: false
-        });
-        await this.initWeb3();
-        return
+    try{
+      const provider =  await web3Modal.connect();;
+      const web3 = new Web3(provider);
+      const coinbase = await web3.eth.getCoinbase();
+      const netId = await web3.eth.net.getId();
+      let itoken;
+      let rewards;
+      let tokenLikes;
+      if(netId === 4){
+        itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.rinkeby);
+        rewards = new web3.eth.Contract(ERC20Rewards.abi, ERC20Rewards.rinkeby);
+        tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.rinkeby);
+      } else if(netId === 0x64){
+        itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.xdai);
+        tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.xdai);
       }
-    } else {
-      provider = window.ethereum;
-    }
-
-    if(provider){
-      try{
-        await provider.request({ method: 'eth_requestAccounts' });
-      } catch(err){
-        console.log(err);
-        this.setState({
-          loading: false,
-        });
-        return;
+      const profile = await getLegacy3BoxProfileAsBasicProfile(coinbase);
+      let initiateContracts = false;
+      if(this.state.netId !== netId){
+        initiateContracts = true;
       }
-    } else {
-      alert('Web3 provider not detected, please install metamask');
       this.setState({
-        loading: false,
+        web3: web3,
+        itoken: itoken,
+        rewards: rewards,
+        tokenLikes: tokenLikes,
+        coinbase:coinbase,
+        profile:profile,
+        netId:netId,
+        provider: provider
       });
-      return;
-    }
-    let web3 = new Web3(provider);
-    const coinbase = await web3.eth.getCoinbase();
-    const netId = await web3.eth.net.getId();
-    let itoken;
-    let rewards;
-    let tokenLikes;
-    if(netId === 4){
-      itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.rinkeby);
-      rewards = new web3.eth.Contract(ERC20Rewards.abi, ERC20Rewards.rinkeby);
-      tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.rinkeby);
-    } else if(netId === 0x64){
-      itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.xdai);
-      rewards = new web3.eth.Contract(ERC20Rewards.abi, ERC20Rewards.xdai);
-      tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.xdai);
-    }
-    if(netId !== 4 && netId !== 0x64){
-      if(window.location.href.includes("?rinkeby")){
-        web3 = new Web3("wss://rinkeby.infura.io/ws/v3/e105600f6f0a444e946443f00d02b8a9");
-      } else {
-        web3 = new Web3("https://rpc.xdaichain.com/")
+      provider.on('accountsChanged', accounts => window.location.reload(true));
+      provider.on('chainChanged', chainId => window.location.reload(true));
+      // Subscribe to provider disconnection
+      provider.on("disconnect", async (error: { code: number; message: string }) => {
+        await web3Modal.clearCachedProvider();
+        window.location.reload(true);
+      });
+      if(initiateContracts){
+        this.initiateContracts();
       }
+    } catch(err){
+      web3Modal.clearCachedProvider();
+      this.initWeb3();
     }
+
+  }
+
+  initiateContracts = async () => {
     this.setState({
-      web3: web3,
-      itoken: itoken,
-      rewards: rewards,
-      tokenLikes: tokenLikes,
-      coinbase:coinbase,
-      netId:netId,
-      loading: false,
-      provider: provider
+      likes: [],
+      creators: [],
+      savedBlobs: [],
+      loadingAvatars: true
+    })
+    let promises = [];
+    const results = await this.checkTokens();
+
+    for(let res of results){
+      promises.push(this.handleEvents(null,res));
+
+      this.handleLikes(null,res);
+    }
+    await Promise.all(promises);
+    this.setState({
+      loadingAvatars: false,
+      savedBlobs: this.state.savedBlobs.sort(function(xstr, ystr){
+                      const x = JSON.parse(xstr)
+                      const y = JSON.parse(ystr)
+                      return y.returnValues._id - x.returnValues._id;
+                  })
     });
-    localStorage.setItem('logged',true);
-    provider.on('accountsChanged', accounts => window.location.reload(true));
-    provider.on('chainChanged', chainId => window.location.reload(true));
+    this.state.itoken.events.TransferSingle({
+      filter: {
+        from: '0x0000000000000000000000000000000000000'
+      },
+      fromBlock: 'latest'
+    }, this.handleEvents);
+    this.state.tokenLikes.events.LikeOrUnlike({
+      filter:{
 
-
+      },
+      fromBlock: 'latest'
+    },this.handleLikes);
   }
 
   getMetadata = async(id) => {
     const uriToken = await this.state.itoken.methods.uri(id).call();
-    const metadataToken = JSON.parse(await (await fetch(`https://ipfs.io/ipfs/${uriToken.replace("ipfs://","")}`)).text());
+    let metadataToken = JSON.parse(await (await fetch(`https://ipfs.io/ipfs/${uriToken.replace("ipfs://","")}`)).text());
+    const svgImage = await (await fetch(metadataToken.image.replace("ipfs://","https://ipfs.io/ipfs/"))).text();
+    fetch(metadataToken.image.replace("ipfs://","https://ipfs.io/ipfs/"))
     return(metadataToken)
   }
   checkTokens = async () => {
@@ -297,6 +333,149 @@ class App extends React.Component {
 
     }
   }
+  initLibp2p = async () => {
+
+    const libp2p = await Libp2p.create({
+      addresses: {
+        // Add the signaling server address, along with our PeerId to our multiaddrs list
+        // libp2p will automatically attempt to dial to the signaling server so that it can
+        // receive inbound connections from other peers
+
+        listen: [
+          '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star',
+          '/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star'
+        ]
+      },
+      modules: {
+        transport: [Websockets, WebRTCStar],
+        connEncryption: [NOISE],
+        streamMuxer: [Mplex],
+        peerDiscovery: [Bootstrap],
+        pubsub: Gossipsub
+      },
+      config: {
+        peerDiscovery: {
+          // The `tag` property will be searched when creating the instance of your Peer Discovery service.
+          // The associated object, will be passed to the service when it is instantiated.
+          [Bootstrap.tag]: {
+            enabled: true,
+            list: [
+              '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+              '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
+              '/dnsaddr/bootstrap.libp2p.io/p2p/QmZa1sAxajnQjVM8WjWXoMbmPd7NsWhfKsPkErzpm9wGkp',
+              '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
+              '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt'
+            ]
+          }
+        },
+        pubsub: {
+          enabled: true,
+          emitSelf: true,
+          canRelayMessage: true
+        }
+      }
+    });
+    // Listen for new peers
+    libp2p.on('peer:discovery', (peerId) => {
+      //console.log(`Found peer ${peerId.toB58String()}`)
+    })
+
+    // Listen for new connections to peers
+    libp2p.connectionManager.on('peer:connect', (connection) => {
+      //console.log(`Connected to ${connection.remotePeer.toB58String()}`)
+    })
+
+    // Listen for peers disconnecting
+    libp2p.connectionManager.on('peer:disconnect', (connection) => {
+      //console.log(`Disconnected from ${connection.remotePeer.toB58String()}`)
+    })
+
+    await libp2p.start();
+    const room = new Room(libp2p, 'snowflakes-dapp-peers-online')
+
+    room.on('peer joined', (cid) => {
+      console.log(`Joined ${cid}`)
+
+      this.setState({
+        peersOnline: this.state.peersOnline + 1
+      })
+    })
+
+    room.on('peer left', (cid) => {
+      console.log(`Left ${cid}`)
+      this.setState({
+        peersOnline: this.state.peersOnline -1
+      })
+    })
+
+    room.once('subscribed',() => {
+      console.log(`Subscribed`)
+    })
+
+    this.setState({
+      libp2p: libp2p,
+      room: room
+    })
+    return(libp2p);
+
+
+  }
+
+  handleEvents = async (err, res) => {
+    try {
+      const metadata = await this.getMetadata(res.returnValues._id);
+      const creator = await this.state.itoken.methods.creators(res.returnValues._id).call();
+      let profile;
+      try{
+        profile = await getLegacy3BoxProfileAsBasicProfile(creator);
+      } catch(err){
+
+      }
+      const creatorProfile = {
+        address: creator,
+        profile: profile
+      }
+      if(!this.state.creators.includes(JSON.stringify(creatorProfile))){
+        this.state.creators.unshift(JSON.stringify(creatorProfile));
+        this.forceUpdate();
+      }
+
+      const obj = {
+        returnValues: res.returnValues,
+        metadata: metadata,
+        creator: creator,
+        profile: profile,
+      }
+      if(!this.state.savedBlobs.includes(JSON.stringify(obj))){
+        this.state.savedBlobs.unshift(JSON.stringify(obj));
+        this.forceUpdate();
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  handleLikes = async (err,res) => {
+    try{
+
+        let likes = 0;
+        let liked;
+        likes = await this.state.tokenLikes.methods.likes(res.returnValues._id).call();
+        if(this.state.coinbase){
+          liked = await this.state.tokenLikes.methods.liked(this.state.coinbase,res.returnValues._id).call();
+        }
+
+        this.state.likes[res.returnValues._id] =  {
+                                                    likes: likes,
+                                                    liked: liked
+                                                  };
+
+        this.forceUpdate();
+
+    } catch(err){
+
+    }
+  }
 
   render(){
     return(
@@ -306,10 +485,7 @@ class App extends React.Component {
         <Box>
           <Nav
             connectWeb3={this.connectWeb3}
-            loading={this.state.loading}
-            coinbase={this.state.coinbase}
-            rewards={this.state.rewards}
-            netId={this.state.netId}
+            {...this.state}
           />
         </Box>
         <Box textAlign="center" fontSize="xl">
@@ -365,19 +541,14 @@ class App extends React.Component {
                           this.state.itoken ?
                           (
                             <MintPage
-                              itoken={this.state.itoken}
-                              rewards={this.state.rewards}
+
                               checkClaimed={this.checkClaimed}
                               getMetadata={this.getMetadata}
-
                               claim={this.claim}
-                              web3={this.state.web3}
                               connectWeb3={this.connectWeb3}
                               checkTokens={this.checkTokens}
-                              coinbase={this.state.coinbase}
-                              ipfs={ipfs}
-                              provider={this.state.provider}
-                              loading={this.state.loading}
+                              {...this.state}
+
                             />
                           ):
                           (
@@ -427,15 +598,11 @@ class App extends React.Component {
                         this.state.itoken ?
                         (
                           <OwnedAvatars
-                            itoken={this.state.itoken}
-                            rewards={this.state.rewards}
                             checkClaimed={this.checkClaimed}
                             claim={this.claim}
-                            web3={this.state.web3}
                             initWeb3={this.initWeb3}
                             checkTokens={this.checkTokens}
-                            coinbase={this.state.coinbase}
-                            provider={this.state.provider}
+                            {...this.state}
                           />
                         ):
                         (
@@ -484,12 +651,10 @@ class App extends React.Component {
                         this.state.itoken ?
                         (
                           <AllAvatars
-                            itoken={this.state.itoken}
-                            web3={this.state.web3}
                             initWeb3={this.initWeb3}
                             checkTokens={this.checkTokens}
-                            coinbase={this.state.coinbase}
-                            tokenLikes={this.state.tokenLikes}
+                            {...this.state}
+
                           />
                         ):
                         (
@@ -548,7 +713,28 @@ class App extends React.Component {
             <Link href="https://t.me/thehashavatars" isExternal>Telegram <ExternalLinkIcon mx="2px" /></Link>
             <Link href="https://twitter.com/thehashavatars" isExternal>Twitter <ExternalLinkIcon mx="2px" /></Link>
             <Link href="https://github.com/henrique1837/snowflakeshash-dapp" isExternal>Github <ExternalLinkIcon mx="2px" /></Link>
+            {
+              (
+                this.state.netId === 4 &&
+                (
+                  <Link  href={`https://rinkeby.client.aragon.org/#/erc20testdaohash.aragonid.eth`} isExternal>GovBETA {' '}<ExternalLinkIcon mx="2px" /></Link>
+                )
+              )
+            }
+            {
+              (
+                this.state.room &&
+                (
+                  <>
+                    <Tooltip label="Peers connected to you" aria-label="peers">
+                      <Image boxSize="20px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABfElEQVRIie2VOU4DQRBFn0diSMFEOOMADlhugAVYJIhVgsiJgZD1GGa7BBbXMCDMAbDBiFWCCDKQjMQQzG8NjNrjGRCZK2n9X69cVnd1D3TiDzH8TywOsA98ArkYfE7sjmrbxgHgAR9AIQZfEOupSWTMCWwCY/JSEbzJTajGA6Zbwd3Ag6BNeRngGMha+KxyGekt1d4Brq3BkoCa/pkLnMs7tPBl5apiU0Bd3oKtwZGSa9Kr0ldA2sKngYaYFXkb0mVbgxslB6VPpWekJ4FH/G3My5sVcyI9JH1ta/CuZI/0a0ib8/GAe3m90i8h/WZ+NM7cRk1R2/je4FnrgNaa1lGtRYItKsozF/EiVPtka2YOeV3aHHID+yH34e+1ByzLM4dsmzoWlawTjGk1osCM6ZlYB7iUN29r4OIfnod/acC/RBVaX7QK0C+9rdpboMvWAIKxawLj8uI8FXmC92gqggdgj98/dqUYPA6wS/LnukTCkR5JwCb64HTiR3wBnYJtcaM+zzsAAAAASUVORK5CYII="/>
+                    </Tooltip>
+                    <small>{this.state.peersOnline} peers</small>
 
+                  </>
+                )
+              )
+            }
             </HStack>
           </Center>
         </Box>
