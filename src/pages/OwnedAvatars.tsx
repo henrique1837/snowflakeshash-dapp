@@ -21,6 +21,7 @@ import {
   Avatar
 } from "@chakra-ui/react"
 import { ExternalLinkIcon } from '@chakra-ui/icons'
+import LazyLoad from 'react-lazyload';
 
 
 
@@ -116,9 +117,11 @@ class AllAvatars extends React.Component {
                     justifyContent="center"
                   >
                   {
+                    !this.props.loadingAvatars &&
                     this.state.myHashAvatars?.map((string) => {
                       const blob = JSON.parse(string);
                       return(
+                        <LazyLoad>
                         <Box
                           rounded="2xl"
                           p="5"
@@ -164,6 +167,8 @@ class AllAvatars extends React.Component {
                             </PopoverContent>
                           </Popover>
                         </Box>
+                        </LazyLoad>
+
                       )
                     })
                   }

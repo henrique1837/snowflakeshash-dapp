@@ -29,6 +29,7 @@ import { ExternalLinkIcon } from '@chakra-ui/icons'
 import makeBlockie from 'ethereum-blockies-base64';
 
 import Avatar from 'avataaars';
+import LazyLoad from 'react-lazyload';
 
 
 class OwnedAvatars extends React.Component {
@@ -48,16 +49,24 @@ class OwnedAvatars extends React.Component {
           likes: this.props.likes
         })
       }
-
-      let page = this.state.page + 6
-      if(!this.props.loadingAvatars){
-        if(page > this.props.savedBlobs.length){
-          page = this.props.savedBlobs.length
-        }
+      if(document.body.scrollHeight <= window.scrollY + 800 ){
+        let page = this.state.page + 6
         this.setState({
-          page: page
+          loadingSnowflakesMsg: <Spinner size="xl" />
         })
+        if(!this.props.loadingAvatars){
+          if(page > this.props.savedBlobs.length){
+            page = this.props.savedBlobs.length
+            this.setState({
+              loadingSnowflakesMsg: ''
+            })
+          }
+          this.setState({
+            page: page
+          })
+        }
       }
+
     } ,1000)
   }
 
@@ -108,7 +117,8 @@ class OwnedAvatars extends React.Component {
       })
     )
     this.setState({
-      filterBy: creatorProfile
+      filterBy: creatorProfile,
+      loadingSnowflakesMsg: ''
     })
   }
 
@@ -118,19 +128,21 @@ class OwnedAvatars extends React.Component {
           <VStack spacing={12}>
             <Box>
             {
-              !this.state.filterBy && !this.props.loadingAvatars ?
+              !this.state.filterBy ?
               (
                 <>
                 <VStack spacing={2}>
                 <Heading>Creators</Heading>
-                <p><small>Total of {this.props.creators.length} Snowflakes creators</small></p>
+                <p><small>Total of {this.props.loadingAvatars ? <Spinner size='xs' /> : this.props.creators.length} Snowflakes creators</small></p>
 
                 <Divider />
                 <HStack spacing={2} style={{overflowX: 'auto',maxWidth: document.body.clientWidth - document.body.clientWidth*0.2}} id='hstack_profiles'>
                 {
+                  !this.props.loadingAvatars &&
                   this.props.creators?.map((string) => {
                     const obj = JSON.parse(string);
                     return(
+                      <LazyLoad>
                       <Box>
                         <Tooltip label={obj.profile?.description ? (obj.profile.description) : (obj.address)} aria-label={obj.creator}>
                           <LinkBox as={Link} onClick={() => {this.filter(obj.address)}}>
@@ -155,6 +167,7 @@ class OwnedAvatars extends React.Component {
                           </LinkBox>
                         </Tooltip>
                       </Box>
+                      </LazyLoad>
                     )
                   })
                 }
@@ -181,7 +194,13 @@ class OwnedAvatars extends React.Component {
                               makeBlockie(this.state.filterBy.address)
                             )
                         } size='2xl' alt="" />
-                        <Text><b>{this.state.filterBy.profile?.name ? (this.state.filterBy.profile.name) : (this.state.filterBy.address)}</b></Text>
+                        <Text  style={{
+                          whiteSpace: "nowrap",
+                          width: "100px",                   /* IE6 needs any width */
+                          overflow: "hidden",              /* "overflow" value must be different from  visible"*/
+                          oTextOverflow: "ellipsis",    /* Opera < 11*/
+                          textOverflow:   "ellipsis",    /* IE, Safari (WebKit), Opera >= 11, FF > 6 */
+                        }}><b>{this.state.filterBy.profile?.name ? (this.state.filterBy.profile.name) : (this.state.filterBy.address)}</b></Text>
                         <Text><small>{this.state.filterBy.profile?.description}</small></Text>
                       </VStack>
                     </LinkBox>
@@ -199,6 +218,7 @@ class OwnedAvatars extends React.Component {
             </Box>
             <Box>
               <Heading>All Snowflakes generated</Heading>
+              <p><small>Total of {this.props.loadingAvatars ? <Spinner size='xs' /> : this.props.savedBlobs.length} Snowflakes</small></p>
             </Box>
             <Box>
             {
@@ -234,14 +254,14 @@ class OwnedAvatars extends React.Component {
                     justifyContent="center"
                   >
                   {
+                    !this.props.loadingAvatars &&
                     this.props.savedBlobs?.map((string) => {
                       const blob = JSON.parse(string);
-                      if(this.props.loadingAvatars){
-                        return
-                      }
+
                       if(this.state.filterBy && blob.creator !== this.state.filterBy.address){
                         return
                       }
+                      /*
                       if(!this.state.filterBy && blob.returnValues._id <= this.props.savedBlobs.length - this.state.page){
                         return
                       }
@@ -251,6 +271,7 @@ class OwnedAvatars extends React.Component {
                       }
                       */
                       return(
+                        <LazyLoad>
                         <Box
                           rounded="2xl"
                           p="5"
@@ -300,7 +321,7 @@ class OwnedAvatars extends React.Component {
                                 <small>
                                   Creator:
                                   <Tooltip label={blob.profile?.description ? (blob.profile.description) : (blob.creator)} aria-label={blob.creator}>
-                                    <Link href={`https://3box.io/${blob.creator}`} isExternal>
+                                    <Link onClick={() => {this.filter(obj.address)}}>
                                       <Av src={
                                           blob.profile?.image ?
                                           (
@@ -367,6 +388,8 @@ class OwnedAvatars extends React.Component {
                           }
                           </Center>
                         </Box>
+                        </LazyLoad>
+
                       )
                     })
                   }
@@ -374,7 +397,6 @@ class OwnedAvatars extends React.Component {
                 )
               )
             }
-
             </Box>
           </VStack>
         </Box>

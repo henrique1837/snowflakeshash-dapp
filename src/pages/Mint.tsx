@@ -43,6 +43,7 @@ import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 import IPFS from 'ipfs-http-client-lite';
 import hydroIdenticon from '../assets/snowflakes.js';
+import LazyLoad from 'react-lazyload';
 
 
 const ipfs = IPFS({
@@ -318,7 +319,7 @@ class MintPage extends React.Component {
               <div id="icon" style={{width: '150px'}}></div>
               <Text>
                 <p>Select the name of your Snowflake and claim it!</p>
-                <p><small>There are {200000 - this.state.allSnowflakes.length} snowflakes to be minted</small></p>
+                <p>{!this.props.loadingAvatars && <small>There are {200000 - this.state.allSnowflakes.length} snowflakes to be minted</small>}</p>
                 <Input placeholder="Snowflake's Name" size="md" id="input_name" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} style={{marginBottom: '10px'}}/>
                 <Input placeholder="Welcome message (optional)" size="md" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} name="description" style={{marginBottom: '10px'}}/>
                 {/*<Input placeholder="Creator's royalites (default 5%)" size="md" onChange={this.handleOnChange} onKeyUp={this.handleOnChange} name="royalites" style={{marginBottom: '10px'}}/>*/}
@@ -386,6 +387,7 @@ class MintPage extends React.Component {
               this.state.savedBlobs?.map((string) => {
                 const blob = JSON.parse(string);
                 return(
+                  <LazyLoad>
                   <Box
                     rounded="2xl"
                     p="5"
@@ -435,6 +437,7 @@ class MintPage extends React.Component {
                       </PopoverContent>
                     </Popover>
                   </Box>
+                  </LazyLoad>
                 )
               })
             }

@@ -53,6 +53,7 @@ const NavLink = (props) => (
   {
     props.coinbase &&
     (
+      <>
       <Link
         px={2}
         py={1}
@@ -61,6 +62,15 @@ const NavLink = (props) => (
         to={`/owned-avatars`}>
         Snowflakes Owned
       </Link>
+      <Link
+        px={2}
+        py={1}
+        rounded={'md'}
+        href={`/game`}
+        to={`/game`}>
+        Games
+      </Link>
+      </>
     )
   }
   <Link

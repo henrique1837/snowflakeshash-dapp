@@ -52,11 +52,13 @@ import Gossipsub from 'libp2p-gossipsub'
 import ERC1155 from './contracts/ItemsERC1155.json'
 import ERC20Rewards from './contracts/ERC20Rewards.json'
 import ERC1155Likes from './contracts/ERC1155Likes.json'
+import SnowflakesInvasion from './contracts/SnowflakesInvasion.json'
 
 import Nav from './components/Nav';
 import MintPage from './pages/Mint';
 import OwnedAvatars from './pages/OwnedAvatars';
 import AllAvatars from './pages/AllAvatars';
+import Games from './pages/Games';
 
 
 
@@ -103,7 +105,9 @@ class App extends React.Component {
     this.setState({
       loading: false
     });
-    await this.initiateContracts();
+    if(this.state.itoken){
+      await this.initiateContracts();
+    }
 
     try{
       await this.initLibp2p();
@@ -167,17 +171,20 @@ class App extends React.Component {
       let itoken;
       let rewards;
       let tokenLikes;
+      let snowflakesInvasion;
       if(netId === 4){
         itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.rinkeby);
         rewards = new web3.eth.Contract(ERC20Rewards.abi, ERC20Rewards.rinkeby);
         tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.rinkeby);
+        snowflakesInvasion = new web3.eth.Contract(SnowflakesInvasion.abi, SnowflakesInvasion.rinkeby);
       } else if(netId === 0x64){
         itoken = new web3.eth.Contract(ERC1155.abi, ERC1155.xdai);
         tokenLikes = new web3.eth.Contract(ERC1155Likes.abi, ERC1155Likes.xdai);
       }
       const profile = await getLegacy3BoxProfileAsBasicProfile(coinbase);
       let initiateContracts = false;
-      if(this.state.netId !== netId){
+      if(this.state.netId !== netId &&
+        (netId === 0x64 || netId === 4)){
         initiateContracts = true;
       }
       this.setState({
@@ -185,6 +192,7 @@ class App extends React.Component {
         itoken: itoken,
         rewards: rewards,
         tokenLikes: tokenLikes,
+        snowflakesInvasion: snowflakesInvasion,
         coinbase:coinbase,
         profile:profile,
         netId:netId,
@@ -198,7 +206,12 @@ class App extends React.Component {
         window.location.reload(true);
       });
       if(initiateContracts){
-        this.initiateContracts();
+        this.setState({
+          savedBlobs: [],
+          creators: [],
+          likes: []
+        })
+        await this.initiateContracts();
       }
     } catch(err){
       web3Modal.clearCachedProvider();
@@ -222,14 +235,15 @@ class App extends React.Component {
 
       this.handleLikes(null,res);
     }
-    await Promise.all(promises);
-    this.setState({
-      loadingAvatars: false,
-      savedBlobs: this.state.savedBlobs.sort(function(xstr, ystr){
-                      const x = JSON.parse(xstr)
-                      const y = JSON.parse(ystr)
-                      return y.returnValues._id - x.returnValues._id;
-                  })
+    Promise.all(promises).then(() => {
+      this.setState({
+        loadingAvatars: false,
+        savedBlobs: this.state.savedBlobs.sort(function(xstr, ystr){
+                        const x = JSON.parse(xstr)
+                        const y = JSON.parse(ystr)
+                        return y.returnValues._id - x.returnValues._id;
+                    })
+      });
     });
     this.state.itoken.events.TransferSingle({
       filter: {
@@ -521,7 +535,7 @@ class App extends React.Component {
                             <p>This project uses "Hydro-Snowflake-Identicon-Generator" package from <Link href="https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator" isExternal>https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator <ExternalLinkIcon mx="2px" /></Link> and can be copied / modified by anyone.</p>
                           </Text>
                           <Center>
-                            <Image boxSize="250px" src="https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu" />
+                            <Image boxSize="200px" src="https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu" />
                           </Center>
                         </SimpleGrid>
                       </Stack>
@@ -588,6 +602,28 @@ class App extends React.Component {
                     )
                   }
 
+              }/>
+
+              <Route path={"/game"} render={() => {
+                  return(
+                    <>
+                    {
+                      (
+                        this.state.itoken &&
+                        (
+                          <Games
+                            getMetadata={this.getMetadata}
+                            initWeb3={this.initWeb3}
+                            checkTokens={this.checkTokens}
+                            initLibp2p={this.initLibp2p}
+                            {...this.state}
+                          />
+                        )
+                      )
+                    }
+                    </>
+                  )
+                }
               }/>
 
               <Route path={"/owned-avatars"} render={() => {
