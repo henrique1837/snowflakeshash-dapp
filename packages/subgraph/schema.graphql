@@ -1,0 +1,7 @@
+type HashAvatar @entity {
+  id: ID!
+  count: BigInt!
+  metadata: String!
+  _owner: Bytes! # address
+  _creator: Bytes! # address
+}
