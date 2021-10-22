@@ -1,6 +1,7 @@
 import { useCallback,useMemo, useState } from "react";
 import Web3 from "web3";
 import Web3Modal from "web3modal";
+
 import { getLegacy3BoxProfileAsBasicProfile } from '@ceramicstudio/idx';
 
 //import WalletConnectProvider from "@walletconnect/web3-provider";
@@ -16,6 +17,8 @@ function useWeb3Modal(config = {}) {
   const [coinbase, setCoinbase] = useState();
   const [profile,setProfile] = useState();
   const [netId , setNetId] = useState();
+  const [connecting , setConnecting] = useState();
+
   const [noProvider , setNoProvider] = useState();
   const [autoLoaded, setAutoLoaded] = useState(false);
   const { autoLoad = true, infuraId = INFURA_ID, NETWORK = NETWORK_NAME } = config;
@@ -25,6 +28,10 @@ function useWeb3Modal(config = {}) {
     injected: {
       package: null
     },
+    /*
+    frame: {
+      package: ethProvider // required
+    }
     /*
     torus: {
       package: Torus, // required
@@ -58,10 +65,23 @@ function useWeb3Modal(config = {}) {
   const loadWeb3Modal = useCallback(async () => {
 
     try{
+      setConnecting(true)
       const newProvider = await web3Modal.connect();
       const web3 = new Web3(newProvider);
       const newCoinbase = await web3.eth.getCoinbase();
-      const netId = await web3.eth.net.getId();
+      const newNetId = await web3.eth.net.getId();
+      setProvider(web3);
+      setCoinbase(newCoinbase);
+      setNetId(newNetId);
+      setNoProvider(true);
+      setAutoLoaded(true);
+      newProvider.on('accountsChanged', accounts => window.location.reload(true));
+      newProvider.on('chainChanged', chainId => window.location.reload(true));
+      // Subscribe to provider disconnection
+      newProvider.on("disconnect", async (error: { code: number; message: string }) => {
+        logoutOfWeb3Modal();
+      });
+      setConnecting(false);
       let profile;
       try{
         profile = await getLegacy3BoxProfileAsBasicProfile(newCoinbase);
@@ -69,19 +89,10 @@ function useWeb3Modal(config = {}) {
       } catch(err){
 
       }
-      setProvider(web3);
-      setCoinbase(newCoinbase);
-      setNetId(netId);
-      newProvider.on('accountsChanged', accounts => window.location.reload(true));
-      newProvider.on('chainChanged', chainId => window.location.reload(true));
-      // Subscribe to provider disconnection
-      newProvider.on("disconnect", async (error: { code: number; message: string }) => {
-        await web3Modal.clearCachedProvider();
-        window.location.reload(true);
-      });
       return;
     } catch(err){
       console.log(err);
+      setConnecting(false)
       logoutOfWeb3Modal();
     }
 
@@ -114,7 +125,7 @@ function useWeb3Modal(config = {}) {
      noProvider
    ]);
 
-  return({provider, loadWeb3Modal, logoutOfWeb3Modal,coinbase,netId,profile});
+  return({provider, loadWeb3Modal, logoutOfWeb3Modal,coinbase,netId,profile,connecting});
 }
 
 export default useWeb3Modal;

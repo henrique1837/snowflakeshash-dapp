@@ -37,6 +37,8 @@ export function handleTransferSingle(event: TransferSingle): void {
     token.owner = event.params._to.toHexString();
 
   }
+
+
   token.save();
   let user = User.load(event.params._to.toHexString());
   if (!user) {

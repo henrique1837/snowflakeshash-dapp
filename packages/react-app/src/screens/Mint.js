@@ -1,9 +1,9 @@
 import React,{useMemo,useState,useCallback} from "react";
 import ReactDOMServer from 'react-dom/server';
 
-import { Container,Row,Col,Image,Spinner } from 'react-bootstrap';
-import { Button,TextInput,TransactionBadge,ProgressBar,IconLink } from '@aragon/ui';
-import Avatar from 'avataaars';
+import { Container,Row,Col,Spinner } from 'react-bootstrap';
+import { Button,TextInput,TransactionBadge,ProgressBar,IconLink,LoadingRing } from '@aragon/ui';
+
 import IPFS from 'ipfs-http-client-lite';
 
 import { useAppContext } from '../hooks/useAppState'
@@ -15,7 +15,7 @@ const ipfs = IPFS({
   apiUrl: 'https://ipfs.infura.io:5001'
 })
 function Mint(){
-  const {loadWeb3Modal,coinbase} = useWeb3Modal();
+  const {loadWeb3Modal,coinbase,connecting} = useWeb3Modal();
   const {getMetadata,getTotalSupply} = useContract();
   const { state } = useAppContext();
 
@@ -28,7 +28,7 @@ function Mint(){
 
   const [mintingMsg,setMintingMsg] = useState(false);
   const [pendingTx,setPendingTx] = useState(false);
-
+  const [loadingHydro,setLoadingHydro] = useState(true);
   const randomize = useCallback(() => {
     const icon = hydroIdenticon.create({ // All options are optional
         // seed used to generate icon data, default: random
@@ -36,7 +36,7 @@ function Mint(){
     });
     document.getElementById('icon').innerHTML = '';
     document.getElementById('icon').appendChild(icon)
-
+    setLoadingHydro(false);
 
   },[document.getElementById('icon')])
 
@@ -109,7 +109,7 @@ function Mint(){
       setTimeout(() => {
         setMinting(false);
         setMintingMsg(null)
-      },5000)
+      },10000)
 
     } catch(err){
       setMintingMsg(<p><small>{err.message}</small></p>)
@@ -204,6 +204,10 @@ function Mint(){
           <p>The maximum amount of Snowflakes that will exists is 200000</p>
         </center>
         <center>
+          {
+            loadingHydro &&
+            <LoadingRing />
+          }
           <div id="icon" style={{width: '150px'}}></div>
         </center>
         <center>
@@ -225,13 +229,20 @@ function Mint(){
           />
         </center>
         <center>
+        <center>
         {
           (
             state.coinbase ?
             (
                 !minting && !pendingTx ?
                 (
-                  canMint ? (<Button onClick={mint}>Claim</Button>) : ("Snowflake with that name already claimed")
+                  state.hashavatars && !connecting ?
+                  (
+                    canMint ?
+                    <Button onClick={mint}>Claim</Button> :
+                    <p>HashAvatar with that name already claimed</p>
+                  ) :
+                  <p><LoadingRing/><small>Loading smart contract</small></p>
                 ) :
                 (
                   <div style={{wordBreak: 'break-word'}}>
@@ -242,12 +253,13 @@ function Mint(){
 
             ) :
             !coinbase && window.ethereum ?
-            <Button onClick={loadWeb3Modal}>Connect Wallet</Button> :
+            state.hashavatars && <Button onClick={loadWeb3Modal}>Connect Wallet</Button> :
             !window.ethereum && <Button onClick={() => {window.open("https://metamask.io/", '_blank')}}>Install Metamask <IconLink/></Button>
 
 
           )
         }
+        </center>
         </center>
         {
           state.coinbase &&
@@ -276,7 +288,7 @@ function Mint(){
                       <p>{obj.metadata.name}</p>
                     </div>
                     <div>
-                      <Image src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                      <img src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
                     </div>
                   </center>
                 </Col>

@@ -48,7 +48,7 @@ function Profile(){
                           <p><b>{obj.metadata.name}</b></p>
                         </div>
                         <div>
-                          <Image src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                          <img src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
                         </div>
                       </center>
 
@@ -77,7 +77,7 @@ function Profile(){
               {
                 profile?.image &&
                 <div>
-                  <Image
+                  <img
                     rounded
                     src={profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")}
                     style={{width: '250px',heigth: "250px"}}

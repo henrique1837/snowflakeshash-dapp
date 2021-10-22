@@ -28,7 +28,7 @@ import Menu from "./components/Menu";
 
 function App() {
 
-  const {provider,coinbase,netId} = useWeb3Modal();
+  const {provider,coinbase,netId,profile} = useWeb3Modal();
   const {hashavatars,creators,nfts,loadingNFTs,myNfts,myOwnedNfts,totalSupply} = useContract();
   const { state, actions } = useAppState()
   const [nftsLength,setNftsLength] = useState();
@@ -36,18 +36,26 @@ function App() {
   const [myOwnedNftsLength,setMyOwnedNftsLength] = useState();
 
   const [previousCoinbase,setPrevCoinbase] = useState();
+  const [previousNetId,setPrevsNetId] = useState();
+  const [previousHashAvatars,setPrevsHashAvatars] = useState();
+  const [previousCreators,setPrevsCreators] = useState();
+  const [previousTotalSupply,setPrevsTotalSupply] = useState();
+  const [previousLoadingNFTs,setPrevsLoadingNFTs] = useState();
 
   useEffect(() => {
-    if((provider && netId) || (coinbase !== previousCoinbase)){
+    if((coinbase !== previousCoinbase) || (netId !== previousNetId) ){
+      setPrevCoinbase(coinbase);
+      setPrevsNetId(netId);
       actions.setProvider(provider);
       actions.setNetId(netId);
       actions.setCoinbase(coinbase);
-      setPrevCoinbase(coinbase);
+      actions.setProfile(profile);
     }
 
 
-    if(hashavatars){
-      actions.setHashAvatars(hashavatars)
+    if(hashavatars !== previousHashAvatars){
+      actions.setHashAvatars(hashavatars);
+      setPrevsHashAvatars(hashavatars)
     }
     if(nfts && nftsLength !== nfts.length){
       actions.setNfts(nfts)
@@ -63,14 +71,20 @@ function App() {
       setMyOwnedNftsLength(myOwnedNfts.length);
     }
 
-    if(!loadingNFTs){
+    if(loadingNFTs !== previousLoadingNFTs){
       actions.setLoadingNFTs(loadingNFTs)
+      setPrevsLoadingNFTs(loadingNFTs)
+
     }
-    if(totalSupply){
+    if(totalSupply !== previousTotalSupply){
       actions.setTotalSupply(totalSupply)
+      setPrevsTotalSupply(totalSupply)
+
     }
-    if(creators){
+    if(creators !== previousCreators){
       actions.setCreators(creators)
+      setPrevsCreators(creators)
+
     }
   },[
     actions,
@@ -87,8 +101,10 @@ function App() {
     nftsLength,
     previousCoinbase,
     myOwnedNfts,
-    myOwnedNftsLength
+    myOwnedNftsLength,
+    profile
   ]);
+
   return (
     <Main>
 
