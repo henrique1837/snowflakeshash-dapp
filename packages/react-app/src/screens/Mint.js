@@ -5,6 +5,7 @@ import { Container,Row,Col,Spinner } from 'react-bootstrap';
 import { Button,TextInput,TransactionBadge,ProgressBar,IconLink,LoadingRing } from '@aragon/ui';
 
 import IPFS from 'ipfs-http-client-lite';
+import { ethers } from "ethers";
 
 import { useAppContext } from '../hooks/useAppState'
 import useWeb3Modal from "../hooks/useWeb3Modal";
@@ -15,7 +16,7 @@ const ipfs = IPFS({
   apiUrl: 'https://ipfs.infura.io:5001'
 })
 function Mint(){
-  const {loadWeb3Modal,coinbase,connecting} = useWeb3Modal();
+  const {loadWeb3Modal,connecting} = useWeb3Modal();
   const {getMetadata,getTotalSupply} = useContract();
   const { state } = useAppContext();
 
@@ -82,29 +83,29 @@ function Mint(){
       const uri = res[0].hash;
       console.log(uri)
       setMintingMsg(<p><small>Approve transaction ... </small></p>);
-      const id = Number(await state.hashavatars.methods.totalSupply().call()) + 1;
+      const id = Number(await state.hashavatars.totalSupply()) + 1;
       console.log(id)
       const fees = [{
         recipient: state.coinbase,
         value: 500
       }];
+      const signer = state.provider.getSigner()
 
-      await state.hashavatars.methods.mint(id,fees,1,uri).send({
+      const tokenWithSigner = state.hashavatars.connect(signer);
+
+      const tx = await tokenWithSigner.mint(id,fees,1,uri,{
         from: state.coinbase,
-        value: 10 ** 18,
+        value: ethers.utils.parseEther('1'),
         gasPrice: 1000000000
-      }).once('transactionHash',(hash) => {
-        setMintingMsg(
-          <div>
-           Tx sent <TransactionBadge transaction={hash} networkType={state.netId === 4 ? "rinkeby" : "xdai"} />
-          </div>
-        )
-        /*
-        this.setState({
-          mintingMsg: <p><small>Transaction <Link href={`https://blockscout.com/xdai/mainnet/tx/${hash}`} isExternal >{hash}</Link> sent, wait confirmation ...</small></p>
-        });
-        */
       });
+      setMintingMsg(
+        <div>
+         Tx sent <TransactionBadge transaction={tx.hash} networkType={state.netId === 4 ? "rinkeby" : "xdai"} />
+        </div>
+      )
+
+      await tx.wait();
+
       setMintingMsg(<p><small>Transaction confirmed!</small></p>)
       setTimeout(() => {
         setMinting(false);
@@ -128,11 +129,10 @@ function Mint(){
           return;
         }
         try{
-          const web3 = state.provider;
           const hashname = e.target.value.trim()
 
           const icon = hydroIdenticon.create({ // All options are optional
-              seed: web3.utils.sha3(hashname), // seed used to generate icon data, default: random
+              seed: ethers.utils.keccak256(ethers.utils.toUtf8Bytes(hashname)), // seed used to generate icon data, default: random
               // width/height of the icon in pixels, default: 125
           });
           document.getElementById('icon').innerHTML = '';
@@ -175,6 +175,7 @@ function Mint(){
           setName(hashname);
 
       } catch(err){
+        alert(err)
         console.log(err)
       }
 
@@ -252,7 +253,7 @@ function Mint(){
                 )
 
             ) :
-            !coinbase && window.ethereum ?
+            !state.coinbase && window.ethereum ?
             state.hashavatars && <Button onClick={loadWeb3Modal}>Connect Wallet</Button> :
             !window.ethereum && <Button onClick={() => {window.open("https://metamask.io/", '_blank')}}>Install Metamask <IconLink/></Button>
 

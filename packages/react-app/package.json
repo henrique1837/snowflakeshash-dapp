@@ -36,6 +36,7 @@
     "chalk": "^4.1.0",
     "eslint": "^6.8.0",
     "eslint-plugin-flowtype": "^4.6.0",
+    "ethers": "^5.5.1",
     "graphql": "^14.7.0",
     "ipfs-http-client-lite": "^0.3.0",
     "js-waku": "^0.12.2",
@@ -47,7 +48,6 @@
     "react-router-dom": "^5.3.0",
     "react-scripts": "3.4.3",
     "styled-components": "^5.2.0",
-    "web3": "^1.5.2",
     "web3modal": "^1.9.1"
   },
   "eslintConfig": {

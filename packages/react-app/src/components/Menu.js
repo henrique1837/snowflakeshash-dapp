@@ -21,11 +21,8 @@ function Menu(){
       if(location.pathname === "/all-avatars"){
         setSelected(2);
       }
-      if(location.pathname === "/games"){
-        setSelected(3);
-      }
       if(location.pathname === "/profile"){
-        setSelected(4);
+        setSelected(3);
       }
 
     }
@@ -111,8 +108,8 @@ function Menu(){
       <Redirect to={"/all-avatars"} />
     }
     {
-      selected === 3 &&
-      <Redirect to={"/games"} />
+      selected === 3 && coinbase &&
+      <Redirect to={"/profile"} />
     }
     {
       selected === 4 && coinbase &&

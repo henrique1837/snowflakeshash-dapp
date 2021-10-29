@@ -129,8 +129,8 @@ function AllAvatars(){
                         <p><small><Link href={obj.profile?.url} external={true}>{obj.profile?.url} <IconLink  /></Link></small></p>
 
                       }
-                      <p><small><Link href={`https://epor.io/tokens/${state.hashavatars.options.address}/${obj.returnValues._id}`} external={true}>View on Epor.io{' '}<IconLink  /></Link></small></p>
-                      <p><small><Link href={`https://unifty.io/xdai/collectible.html?collection=${state.hashavatars.options.address}&id=${obj.returnValues._id}`} external={true}>View on Unifty.io{' '}<IconLink /></Link></small></p>
+                      <p><small><Link href={`https://epor.io/tokens/${state.hashavatars.address}/${obj.returnValues._id}`} external={true}>View on Epor.io{' '}<IconLink  /></Link></small></p>
+                      <p><small><Link href={`https://unifty.io/xdai/collectible.html?collection=${state.hashavatars.address}&id=${obj.returnValues._id}`} external={true}>View on Unifty.io{' '}<IconLink /></Link></small></p>
                       </Popover.Body>
                     </Popover>
                   return(
