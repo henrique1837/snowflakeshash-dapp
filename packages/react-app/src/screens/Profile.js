@@ -1,5 +1,5 @@
 import React from "react";
-import { Container,Row,Col,Image } from 'react-bootstrap';
+import { Container,Row,Col } from 'react-bootstrap';
 import { Link,IconLink,IdentityBadge,Split,ProgressBar } from '@aragon/ui'
 
 import { useAppContext } from '../hooks/useAppState'
@@ -48,7 +48,7 @@ function Profile(){
                           <p><b>{obj.metadata.name}</b></p>
                         </div>
                         <div>
-                          <img src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                          <img alt="" src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
                         </div>
                       </center>
 
@@ -78,7 +78,7 @@ function Profile(){
                 profile?.image &&
                 <div>
                   <img
-                    rounded
+                    alt=""
                     src={profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")}
                     style={{width: '250px',heigth: "250px"}}
                   />

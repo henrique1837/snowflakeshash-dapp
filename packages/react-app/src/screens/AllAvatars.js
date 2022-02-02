@@ -1,5 +1,5 @@
 import React,{useState} from "react";
-import { Container,Row,Col,Image,Popover,OverlayTrigger,Spinner } from 'react-bootstrap';
+import { Container,Row,Col,Popover,OverlayTrigger,Spinner } from 'react-bootstrap';
 import { Link,IconLink,IdentityBadge,Pagination,Split,Button,EthIdenticon,ProgressBar } from '@aragon/ui'
 
 import { useAppContext } from '../hooks/useAppState'
@@ -45,6 +45,7 @@ function AllAvatars(){
                             obj.profile?.image &&
                             <div>
                               <img
+                                alt=""
                                 rounded
                                 src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")}
                                 style={{width: '250px',heigth: "250px"}}
@@ -117,7 +118,7 @@ function AllAvatars(){
                               entity={obj.creator}
                               networkType={state.netId === 4 ? "rinkeby" : "xdai"}
                               icon={obj.profile?.image ?
-                                    <img src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
+                                    <img alt="" src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
                                     <EthIdenticon address={obj.creator}/>
                               }
                             />
@@ -144,7 +145,7 @@ function AllAvatars(){
                           <p><b>{obj.metadata.name}</b></p>
                         </div>
                         <div>
-                          <img src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                          <img alt="" src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
                         </div>
                       </center>
                     </OverlayTrigger>
@@ -184,7 +185,7 @@ function AllAvatars(){
                         badgeOnly
                         networkType={state.netId === 4 ? "rinkeby" : "xdai"}
                         icon={obj.profile?.image ?
-                              <img src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
+                              <img alt="" src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
                               <EthIdenticon address={obj.address}/>
                         }
                       />

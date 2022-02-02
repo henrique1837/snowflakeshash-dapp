@@ -1,5 +1,5 @@
 import React from "react";
-import { Container,Row,Col,Image } from 'react-bootstrap';
+import { Container,Row,Col } from 'react-bootstrap';
 import { Link,IconLink } from '@aragon/ui'
 import { addresses } from "@project/contracts";
 
@@ -26,7 +26,7 @@ function Home(props){
             <p>This project uses "Hydro-Snowflake-Identicon-Generator" package from <Link href="https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator" external>https://github.com/cyphercodes96/Hydro-Snowflake-Identicon-Generator <IconLink mx="2px" /></Link> and can be copied / modified by anyone.</p>
           </Col>
           <Col style={{textAlign: 'center'}}>
-            <img style={{width: "200px"}} src="https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu" />
+            <img alt="" style={{width: "200px"}} src="https://ipfs.io/ipfs/QmZossnC5rci4YzVe3n2Z9bEJEXZrzTKNg2jXKXM1kehiu" />
           </Col>
         </Row>
       </Container>

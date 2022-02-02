@@ -6,12 +6,13 @@ import {
   TransferBatch,
   TransferSingle,
   URI
-} from "../generated/HashAvatars/HashAvatars"
+} from "../generated/SnowflakesHash/HashAvatars"
 
 import {
-  Token, User,Metadata
+  Token, User
 } from '../generated/schema'
 
+import { ipfs, json, JSONValue,Bytes } from '@graphprotocol/graph-ts'
 
 
 
@@ -24,11 +25,16 @@ export function handleSecondarySaleFees(event: SecondarySaleFees): void {}
 export function handleTransferBatch(event: TransferBatch): void {}
 
 export function handleTransferSingle(event: TransferSingle): void {
+
+  if(!event.params._id){
+    return
+  }
   let token = Token.load(event.params._id.toString());
   if (!token) {
     token = new Token(event.params._id.toString());
     token.creator = event.params._to.toHexString();
     token.tokenID = event.params._id;
+    token.supply = event.params._value;
 
     let tokenContract = TokenContract.bind(event.address);
     token.metadataURI = tokenContract.uri(event.params._id);
@@ -36,7 +42,29 @@ export function handleTransferSingle(event: TransferSingle): void {
     token.createdAtTimestamp = event.block.timestamp;
     token.owner = event.params._to.toHexString();
 
+    if(token.metadataURI != ''){
+      let hash = token.metadataURI.split('ipfs://').join('')
+      let data = ipfs.cat(hash) as Bytes;
+      if (data != null){
+        let value = json.fromBytes(data).toObject()
+
+        let name = value.get('name');
+
+        let imageUri = value.get('image');
+        let description = value.get('description')
+        if(description){
+          token.description = description.toString();
+        } else {
+          token.description = "";
+        }
+        token.name = name.toString();
+        token.imageURI = imageUri.toString();
+      }
+    }
+
   }
+
+
   token.save();
   let user = User.load(event.params._to.toHexString());
   if (!user) {
@@ -46,4 +74,6 @@ export function handleTransferSingle(event: TransferSingle): void {
 
 }
 
-export function handleURI(event: URI): void {}
+export function handleURI(event: URI): void {
+
+}

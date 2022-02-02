@@ -9,9 +9,10 @@ import {
 } from "../generated/HashAvatars/HashAvatars"
 
 import {
-  Token, User,Metadata
+  Token, User
 } from '../generated/schema'
 
+import { ipfs, json, JSONValue,Bytes } from '@graphprotocol/graph-ts'
 
 
 
@@ -35,6 +36,22 @@ export function handleTransferSingle(event: TransferSingle): void {
     //token.metadata = event.params._id.toString();
     token.createdAtTimestamp = event.block.timestamp;
     token.owner = event.params._to.toHexString();
+
+    if(token.metadataURI != ''){
+      let hash = token.metadataURI.split('ipfs://').join('')
+      let data = ipfs.cat(hash) as Bytes;
+      if (!data) return
+
+      if (data != null){
+        let value = json.fromBytes(data).toObject()
+
+        let name = value.get('name');
+
+        let imageUri = value.get('imageUri');
+        token.name = name.toString();
+        token.imageURI = imageUri.toString();
+      }
+    }
 
   }
 

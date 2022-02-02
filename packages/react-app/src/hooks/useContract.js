@@ -4,17 +4,22 @@ import { addresses, abis } from "@project/contracts";
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import { ethers } from "ethers";
 
-
+//import useIpfs from './useIPFS';
 import useWeb3Modal from "./useWeb3Modal";
 
 
 const APIURL_RINKEBY = "https://api.studio.thegraph.com/query/6693/snowflakes-rinkeby/0.0.1";
-const APIURL_XDAI = "https://api.studio.thegraph.com/query/6693/snowflakes-xdai/0.0.1";
+const APIURL_XDAI = "https://api.thegraph.com/subgraphs/name/henrique1837/snowflakes-hash";
+
+
+
+
 
 
 function useContract() {
 
   const {provider,coinbase,netId} = useWeb3Modal();
+  //const {ipfs} = useIpfs();
   const [hashavatars,setHashAvatars] = useState();
   const [getData,setGetData] = useState();
   const [client,setClient] = useState();
@@ -27,13 +32,23 @@ function useContract() {
   const [myOwnedNfts,setMyOwnedNfts] = useState([]);
 
   const [loadingNFTs,setLoadingNFTs] = useState();
+  const [pinning,setPinning] = useState(false);
 
   let ids = [];
+
 
   const getMetadata = async(id,erc1155) => {
     const uriToken = await erc1155.uri(id);
     const metadataToken = JSON.parse(await (await fetch(`${uriToken.replace("ipfs://","https://ipfs.io/ipfs/")}`)).text());
     fetch(metadataToken.image.replace("ipfs://","https://ipfs.io/ipfs/"));
+    //const image = await (await fetch(metadataToken.image.replace("ipfs://","https://ipfs.io/ipfs/"))).text()
+    //metadataToken.svg = image;
+    /*
+    if(ipfs){
+      ipfs.pin.add(uriToken.replace("ipfs://",""))
+      ipfs.pin.add(metadataToken.image.replace("ipfs://",""))
+    }
+    */
     return(metadataToken)
   }
 
@@ -172,7 +187,17 @@ function useContract() {
         return;
       }
       //const metadata = JSON.parse(await ipfs.cat(res.metadata.replace("ipfs://","")))
-      const metadata = JSON.parse(await (await fetch(`${res.metadata.replace("ipfs://","https://ipfs.io/ipfs/")}`)).text());
+      let metadata;
+      if(!res.imageURI){
+        metadata = JSON.parse(await (await fetch(`${res.metadata.replace("ipfs://","https://ipfs.io/ipfs/")}`)).text());
+      } else {
+        metadata = {
+          name: res.name,
+          image: res.imageURI,
+          description: res.description
+        }
+      }
+
       fetch(metadata.image.replace("ipfs://","https://ipfs.io/ipfs/"));
 
       const creator = res.creator;
@@ -180,7 +205,8 @@ function useContract() {
       const obj = {
         returnValues: returnValues,
         metadata: metadata,
-        creator: creator
+        creator: creator,
+        tokenUri: res.metadata
       }
       if(!nfts.includes(JSON.stringify(obj))){
         const newNfts = nfts;
@@ -269,14 +295,20 @@ function useContract() {
         newToken = new ethers.Contract(addresses.erc1155.rinkeby,abis.erc1155,provider);
         newClient = new ApolloClient({
           uri: APIURL_RINKEBY,
-          cache: new InMemoryCache()
+          cache: new InMemoryCache(),
+          fetchOptions: {
+            mode: 'no-cors',
+          }
         });
       }
       if(netId === 0x64){
         newToken = new ethers.Contract(addresses.erc1155.xdai,abis.erc1155,provider);
         newClient = new ApolloClient({
           uri: APIURL_XDAI,
-          cache: new InMemoryCache()
+          cache: new InMemoryCache(),
+          fetchOptions: {
+            mode: 'no-cors',
+          }
         });
       }
       setHashAvatars(newToken)
@@ -335,7 +367,7 @@ function useContract() {
 
 
 
-    if(totalSupply && nfts?.length === 0  && !getData && hashavatars){
+    if(totalSupply && nfts?.length === 0  && !getData && hashavatars && client){
       setGetData(true);
       setLoadingNFTs(true);
       if(Number(totalSupply) === 0){
@@ -363,27 +395,39 @@ function useContract() {
             }
         }
       `
-      let totalQueries = id % 100;
+      let totalQueries = id/100;
       let actualQuery = 1;
-      if(totalQueries > Number(id % 100).toFixed(0)){
+      if(totalQueries > Number(id/100).toFixed(0)){
         totalQueries = totalQueries + 1;
+      }
+      if(totalQueries < actualQuery){
+        totalQueries = actualQuery
       }
       while(actualQuery <= totalQueries){
         const results = await client.query({
           query: gql(tokensQuery)
         });
+
         const tokens = results.data.tokens;
         for(const token of tokens){
-          try{
-            await handleEventsSubgraph({
+          if(netId === 4 && token.metadataURI.includes("QmWXp3VmSc6CNiNvnPfA74rudKaawnNDLCcLw2WwdgZJJT")){
+            continue;
+          }
+          promises.push(
+            handleEventsSubgraph({
                     address: token.address,
                     id: token.tokenID,
                     owner: token.owner.id,
                     creator: token.creator.id,
-                    metadata: token.metadataURI
-            });
-          } catch(err){
-            console.log(err)
+                    metadata: token.metadataURI,
+                    name: token.name,
+                    description: token.description,
+                    imageURI: token.imageURI
+            })
+          )
+          if(token.tokenID % 12 === 0 || token.tokenID === 1){
+            await Promise.allSettled(promises);
+            promises = [];
           }
         }
         id = id - 100;
@@ -420,8 +464,22 @@ function useContract() {
     nfts,
     totalSupply,
     getData,
+    client
   ])
 
+  /*
+  useMemo(() => {
+    if(!loadingNFTs && ipfs &&!pinning){
+      setPinning(true)
+      nfts.map(async string => {
+        const obj = JSON.parse(string);
+        await ipfs.pin.add(obj.tokenUri.replace("ipfs://",""))
+        await ipfs.pin.add(obj.metadata.image.replace("ipfs://",""))
+        return(string);
+      })
+    }
+  },[ipfs,nfts,loadingNFTs,pinning])
+ */
   return({hashavatars,creators,nfts,loadingNFTs,myNfts,myOwnedNfts,totalSupply,getMetadata,getTotalSupply})
 }
 

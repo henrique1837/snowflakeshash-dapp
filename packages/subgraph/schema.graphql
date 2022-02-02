@@ -1,21 +1,19 @@
 type Token @entity {
   id: ID!
   tokenID: BigInt!
+  supply: BigInt!
   metadataURI: String!
-  createdAtTimestamp: BigInt!
   creator: User!
   owner: User!
+  imageURI: String!
+  description: String!
+  name: String!
+  createdAtTimestamp: BigInt!
+
 }
 
 type User @entity {
   id: ID!
   tokens: [Token!]! @derivedFrom(field: "owner")
   created: [Token!]! @derivedFrom(field: "creator")
-}
-
-type Metadata @entity {
-  id : ID!
-  name: String!
-  description: String!
-  image: String!
 }

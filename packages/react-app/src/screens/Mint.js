@@ -1,5 +1,4 @@
 import React,{useMemo,useState,useCallback} from "react";
-import ReactDOMServer from 'react-dom/server';
 
 import { Container,Row,Col,Spinner } from 'react-bootstrap';
 import { Button,TextInput,TransactionBadge,ProgressBar,IconLink,LoadingRing } from '@aragon/ui';
@@ -8,16 +7,12 @@ import IPFS from 'ipfs-http-client-lite';
 import { ethers } from "ethers";
 
 import { useAppContext } from '../hooks/useAppState'
-import useWeb3Modal from "../hooks/useWeb3Modal";
-import useContract from "../hooks/useContract";
 import hydroIdenticon from '../assets/snowflakes.js';
 
 const ipfs = IPFS({
   apiUrl: 'https://ipfs.infura.io:5001'
 })
 function Mint(){
-  const {loadWeb3Modal,connecting} = useWeb3Modal();
-  const {getMetadata,getTotalSupply} = useContract();
   const { state } = useAppContext();
 
   const [name,setName] = useState();
@@ -28,18 +23,21 @@ function Mint(){
   const [focused,setFocused] = useState(false);
 
   const [mintingMsg,setMintingMsg] = useState(false);
-  const [pendingTx,setPendingTx] = useState(false);
   const [loadingHydro,setLoadingHydro] = useState(true);
+
+  const iconDom = document.getElementById('icon')
+  const nameDom = document.getElementById('input_name')
+
   const randomize = useCallback(() => {
     const icon = hydroIdenticon.create({ // All options are optional
         // seed used to generate icon data, default: random
          // width/height of the icon in pixels, default: 125
     });
-    document.getElementById('icon').innerHTML = '';
-    document.getElementById('icon').appendChild(icon)
+    iconDom.innerHTML = '';
+    iconDom.appendChild(icon)
     setLoadingHydro(false);
 
-  },[document.getElementById('icon')])
+  },[iconDom])
 
   const mint = useCallback(async () => {
     try{
@@ -51,9 +49,9 @@ function Mint(){
       setMintingMsg(<p><small>Checking all tokens already minted ... </small></p>);
 
       const promises = [];
-      const totalSupply = await getTotalSupply();
+      const totalSupply = await state.getTotalSupply();
       for(let i = 1; i <= totalSupply; i++){
-        promises.push(getMetadata(i,state.hashavatars))
+        promises.push(state.getMetadata(i,state.hashavatars))
       }
 
       const metadatas = await Promise.allSettled(promises);
@@ -72,7 +70,7 @@ function Mint(){
         return;
       }
       setMintingMsg(<p><small>Storing image and metadata at IPFS ... </small></p>);
-      const imgres = await ipfs.add(document.getElementById('icon').innerHTML);
+      const imgres = await ipfs.add(iconDom.innerHTML);
       const metadata = {
           name: name,
           image: `ipfs://${imgres[0].hash}`,
@@ -94,9 +92,7 @@ function Mint(){
       const tokenWithSigner = state.hashavatars.connect(signer);
 
       const tx = await tokenWithSigner.mint(id,fees,1,uri,{
-        from: state.coinbase,
-        value: ethers.utils.parseEther('1'),
-        gasPrice: 1000000000
+        value: ethers.utils.parseEther('1')
       });
       setMintingMsg(
         <div>
@@ -119,7 +115,7 @@ function Mint(){
         setMintingMsg(null);
       },2000)
     }
-  },[state,getMetadata,getTotalSupply,state.hashavatars,document.getElementById('icon')]);
+  },[state,state.getMetadata,state.getTotalSupply,state.hashavatars,iconDom]);
 
 
   const handleOnChange = useCallback(async (e) => {
@@ -135,14 +131,14 @@ function Mint(){
               seed: ethers.utils.keccak256(ethers.utils.toUtf8Bytes(hashname)), // seed used to generate icon data, default: random
               // width/height of the icon in pixels, default: 125
           });
-          document.getElementById('icon').innerHTML = '';
-          document.getElementById('icon').appendChild(icon)
+          iconDom.innerHTML = '';
+          iconDom.appendChild(icon)
           /*
           if(state.loadingNFTs && state.hashavatars){
             const promises =[];
-            const totalSupply = await getTotalSupply();
+            const totalSupply = await state.getTotalSupply();
             for(let i = 1; i <= totalSupply; i++){
-              promises.push(getMetadata(i,state.hashavatars))
+              promises.push(state.getMetadata(i,state.hashavatars))
             }
             metadatas = await Promise.allSettled(promises);
             alert(metadatas.length)
@@ -179,21 +175,21 @@ function Mint(){
         console.log(err)
       }
 
-  },[document.getElementById('icon'),state.nfts]);
+  },[iconDom,state.nfts]);
 
 
 
   useMemo(() => {
-    if(document.getElementById('icon') && !randomized){
+    if(iconDom && !randomized){
       randomize();
       setRandomized(true);
     }
-    if(document.getElementById("input_name") && !focused){
+    if(nameDom && !focused){
       setFocused(true);
-      document.getElementById("input_name").focus();
-      document.getElementById("input_name").select();
+      nameDom.focus();
+      nameDom.select();
     }
-  },[randomize,focused,document.getElementById("input_name"),document.getElementById('icon'),randomized])
+  },[randomize,focused,nameDom,iconDom,randomized])
 
   return(
     <>
@@ -235,9 +231,9 @@ function Mint(){
           (
             state.coinbase ?
             (
-                !minting && !pendingTx ?
+                !minting ?
                 (
-                  state.hashavatars && !connecting ?
+                  state.hashavatars && !state.connecting ?
                   (
                     canMint ?
                     <Button onClick={mint}>Claim</Button> :
@@ -254,7 +250,7 @@ function Mint(){
 
             ) :
             !state.coinbase && window.ethereum ?
-            state.hashavatars && <Button onClick={loadWeb3Modal}>Connect Wallet</Button> :
+            state.hashavatars && <Button onClick={state.loadWeb3Modal}>Connect Wallet</Button> :
             !window.ethereum && <Button onClick={() => {window.open("https://metamask.io/", '_blank')}}>Install Metamask <IconLink/></Button>
 
 
