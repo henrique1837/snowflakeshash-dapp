@@ -6,14 +6,12 @@ import {
   TransferBatch,
   TransferSingle,
   URI
-} from "../generated/HashAvatars/HashAvatars"
+} from "../generated/SnowflakesHash/HashAvatars"
+
 
 import {
   Token, User
 } from '../generated/schema'
-
-import { ipfs, json, JSONValue,Bytes } from '@graphprotocol/graph-ts'
-
 
 
 export function handleApprovalForAll(event: ApprovalForAll): void {
@@ -33,26 +31,10 @@ export function handleTransferSingle(event: TransferSingle): void {
 
     let tokenContract = TokenContract.bind(event.address);
     token.metadataURI = tokenContract.uri(event.params._id);
-    //token.metadata = event.params._id.toString();
     token.createdAtTimestamp = event.block.timestamp;
     token.owner = event.params._to.toHexString();
-
-    if(token.metadataURI != ''){
-      let hash = token.metadataURI.split('ipfs://').join('')
-      let data = ipfs.cat(hash) as Bytes;
-      if (!data) return
-
-      if (data != null){
-        let value = json.fromBytes(data).toObject()
-
-        let name = value.get('name');
-
-        let imageUri = value.get('imageUri');
-        token.name = name.toString();
-        token.imageURI = imageUri.toString();
-      }
-    }
-
+  } else {
+    token.owner = event.params._to.toHexString();
   }
 
 
