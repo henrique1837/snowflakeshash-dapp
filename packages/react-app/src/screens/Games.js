@@ -2,8 +2,7 @@ import React,{useState} from "react";
 import { Container,Row,Col,Image } from 'react-bootstrap';
 import { Button } from '@aragon/ui';
 
-import HashAtack from './games/HashAtack'
-import HashVille from './games/HashVilleUnderHashAtack'
+import FirstContact from './games/FirstContact'
 
 function GamesPage() {
 
@@ -11,31 +10,11 @@ function GamesPage() {
 
   const games = [
     {
-      component: <HashAtack />,
-      name: "HashAttack",
-      description: "Avoid being touched by HashAvatars icon!",
-      image: "https://ipfs.io/ipfs/QmbKJ5wbYhio5h8NdGD6nyXmpJ7NFJqyqMAEbq8YwF8Kkk"
-    },
-    {
-      component: <HashVille/>,
-      name: "HashVille under HashAttack",
-      description: "Protect yourself! HashVille is under attack!",
-      image: "https://ipfs.io/ipfs/QmUs9rX2FsYUML9PCWMExJZfgcTPiXGV3FpArrTxd1Yf8i"
-    },
-    {
-      component: "",
-      name: "HashOperation",
-      description: "HashIsland is under war! Kill all others players by touching their head! Survive!",
-      image: "https://ipfs.io/ipfs/QmbUD9ekE1CBvZZsSC3PvrRE6oxgkrVfbHyNx7GaGCuX6o"
-    },
-    /*
-    {
-      component: <SnowflakesInvasion {...this.props} />,
-      name: "SnowflakesInvasion",
-      description: "",
-      image: "https://ipfs.io/ipfs/QmbUD9ekE1CBvZZsSC3PvrRE6oxgkrVfbHyNx7GaGCuX6o"
+      component: <FirstContact />,
+      name: "FirstContact",
+      description: "We finally can see lands! Lets kill every resident if there are some!",
+      image: "https://ipfs.io/ipfs/bafkreielvi4lb634g3zm5n3md2gwkemdupzthlvsarutxvikrndjup5iza"
     }
-    */
   ]
 
   return(
@@ -76,11 +55,7 @@ function GamesPage() {
                             <hr />
                             <div><Image src={game.image} style={{width: '150px',height: '150px'}} roundedCircle/></div>
                             <hr />
-                            {
-                              game.name !== "HashOperation" ?
-                              <div><Button onClick={() => {setPlay(game.component)}} size="small" mode="strong">Play</Button></div>:
-                              <div><Button size="small" mode="disabled">Migration in Progress</Button></div>
-                            }
+                            <Button onClick={() => {setPlay(game.component)}} size="small" mode="strong">Play</Button>
                             <div>{game.description}</div>
                             </center>
                           </Col>

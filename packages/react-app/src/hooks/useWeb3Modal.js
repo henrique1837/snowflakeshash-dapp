@@ -1,4 +1,4 @@
-import { useCallback,useMemo, useState } from "react";
+import { useCallback,useMemo, useState,useEffect } from "react";
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 
@@ -56,7 +56,7 @@ function useWeb3Modal(config = {}) {
       await web3Modal.clearCachedProvider();
       setCoinbase();
       setProfile()
-      setNetId(0x89);
+      setNetId(0x64);
       setProvider(new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com/"));
     },
     [web3Modal],
@@ -78,13 +78,9 @@ function useWeb3Modal(config = {}) {
       setNetId(chainId);
       setNoProvider(true);
       conn.on('accountsChanged', accounts => {
-        const newProvider = new ethers.providers.Web3Provider(conn,"any");
-        setProvider(newProvider)
         setCoinbase(accounts[0]);
       });
       conn.on('chainChanged', async chainId => {
-        const newProvider = new ethers.providers.Web3Provider(conn,"any");
-        setProvider(newProvider)
         setNetId(Number(chainId))
       });
       // Subscribe to provider disconnection
@@ -112,29 +108,38 @@ function useWeb3Modal(config = {}) {
 
 
   // If autoLoad is enabled and the the wallet had been loaded before, load it automatically now.
-
   useMemo(() => {
-
-    if(!noProvider && !window.ethereum?.selectedAddress && !autoLoaded && !web3Modal.cachedProvider && !connecting){
-      setProvider(new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com"));
-      setNetId(0x64);
+    if (!autoLoaded && web3Modal.cachedProvider) {
+      setAutoLoaded(true);
+      loadWeb3Modal();
       setNoProvider(true);
     }
+  },[autoLoaded,loadWeb3Modal]);
+  useMemo(() => {
 
-    if (!autoLoaded && web3Modal.cachedProvider) {
-      loadWeb3Modal();
+    if(!noProvider && !autoLoaded && !web3Modal.cachedProvider && !connecting){
+      setProvider(new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com"));
+      setNetId(0x64);
       setNoProvider(true);
       setAutoLoaded(true);
     }
 
+
+
   },[
-     autoLoaded,
-     loadWeb3Modal,
-     setAutoLoaded,
-     web3Modal.cachedProvider,
-     noProvider,
-     connecting
+    noProvider,
+    autoLoaded,
+    connecting
    ]);
+
+  useEffect(() => {
+    if(coinbase){
+      getLegacy3BoxProfileAsBasicProfile(coinbase)
+      .then(profile => {
+        setProfile(profile);
+      });
+    }
+  },[coinbase])
 
   return({provider, loadWeb3Modal, logoutOfWeb3Modal,coinbase,netId,profile,connecting});
 }

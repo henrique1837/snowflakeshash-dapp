@@ -3,11 +3,9 @@ import { Container,Row,Col } from 'react-bootstrap';
 import { Link,IconLink,IdentityBadge,Split,ProgressBar } from '@aragon/ui'
 
 import { useAppContext } from '../hooks/useAppState'
-import useProfile from '../hooks/useProfile';
 
 function Profile(){
   const { state } = useAppContext();
-  const {profile} = useProfile();
   return(
     <>
 
@@ -67,27 +65,27 @@ function Profile(){
             <div>
               <div>
               <IdentityBadge
-                label={profile?.name}
+                label={state.profile?.name}
                 entity={state.coinbase}
                 connectedAccount
                 networkType={state.netId === 4 ? "rinkeby" : "xdai"}
-                popoverTitle={profile?.name }
+                popoverTitle={state.profile?.name }
               />
               </div>
               {
-                profile?.image &&
+                state.profile?.image &&
                 <div>
                   <img
                     alt=""
-                    src={profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")}
+                    src={state.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")}
                     style={{width: '250px',heigth: "250px"}}
                   />
                 </div>
               }
-              <p>{profile?.description}</p>
+              <p>{state.profile?.description}</p>
               {
-                profile?.url &&
-                <p><Link href={state.profile?.url} external={true}>{profile?.url} <IconLink  /></Link></p>
+                state.profile?.url &&
+                <p><Link href={state.profile?.url} external={true}>{state.profile?.url} <IconLink  /></Link></p>
               }
             </div>
 

@@ -17,6 +17,7 @@ const useAppState = () => {
     hashavatars: null,
     coinbase: null,
     loadingNFTs: true,
+    loadingMyNFTs: true,
     netId: null,
     nfts: [],
     myNfts: [],
@@ -25,7 +26,9 @@ const useAppState = () => {
     profile: null,
     connecting: false,
     getMetadata: null,
-    getTotalSupply: null
+    getTotalSupply: null,
+    ipfs: null,
+    client: null
   }
 
   // Manage the state using React.useState()
@@ -66,6 +69,9 @@ const getActions = (setState) => ({
   setLoadingNFTs: (loading) => {
     setState((state) => ({ ...state, loadingNFTs: loading }))
   },
+  setLoadingMyNFTs: (loading) => {
+    setState((state) => ({ ...state, loadingMyNFTs: loading }))
+  },
   setCreators: (creators) => {
     setState((state) => ({ ...state, creators: creators }))
   },
@@ -86,6 +92,12 @@ const getActions = (setState) => ({
   },
   setGetTotalSupply: (getTotalSupply) => {
     setState((state) => ({ ...state, getTotalSupply: getTotalSupply }))
+  },
+  setIPFS: (ipfs) => {
+    setState((state) => ({ ...state, ipfs: ipfs }))
+  },
+  setClient: (client) => {
+    setState((state) => ({ ...state, client: client }))
   },
 })
 

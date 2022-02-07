@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from "react";
+import React,{useEffect,useMemo,useState} from "react";
 import {
   HashRouter as Router,
   Route,
@@ -9,14 +9,16 @@ import { Main,Box,Link,IconLink } from '@aragon/ui';
 
 import useWeb3Modal from "./hooks/useWeb3Modal";
 import useContract from "./hooks/useContract";
+import useIPFS from "./hooks/useIPFS";
+import useClient from "./hooks/useGraphClient";
+
 import { AppContext, useAppState } from './hooks/useAppState'
 
 import Home from "./screens/Home";
 import Mint from "./screens/Mint";
 import Profile from "./screens/Profile";
-//import GamesPage from "./screens/Games";
+import GamesPage from "./screens/Games";
 
-//import Feedbacks from "./screens/Feedbacks";
 
 import AllAvatars from "./screens/AllAvatars";
 
@@ -27,13 +29,37 @@ import Menu from "./components/Menu";
 
 
 function App() {
+  const { state, actions } = useAppState();
 
-  const {provider,coinbase,netId,profile,connecting,loadWeb3Modal} = useWeb3Modal();
-  const {hashavatars,creators,nfts,loadingNFTs,myNfts,myOwnedNfts,totalSupply,getTotalSupply,getMetadata} = useContract();
-  const { state, actions } = useAppState()
-  const [nftsLength,setNftsLength] = useState();
-  const [myNftsLength,setMyNftsLength] = useState();
-  const [myOwnedNftsLength,setMyOwnedNftsLength] = useState();
+  const { client,initiateClient } = useClient();
+  const {
+    provider,
+    coinbase,
+    netId,
+    profile,
+    connecting,
+    loadWeb3Modal
+  } = useWeb3Modal();
+  const {
+    hashavatars,
+    creators,
+    nfts,
+    loadingNFTs,
+    loadingMyNFTs,
+    myNfts,
+    myOwnedNfts,
+    totalSupply,
+    getTotalSupply,
+    getMetadata,
+    initiateContracts,
+    getAllNFTs,
+    getMyNFTs,
+    checkEvents
+  } = useContract();
+  const {ipfs} = useIPFS();
+  const [pinning,setPinning] = useState();
+  const [getData,setGetData] = useState();
+  const [checkingEvents,setCheckingEvents] = useState();
 
   useEffect(() => {
     actions.setConnecting(connecting);
@@ -42,50 +68,89 @@ function App() {
     actions.setProvider(provider);
     actions.setLoadWeb3Modal(loadWeb3Modal);
   },[provider])
+
   useEffect(() => {
     actions.setCoinbase(coinbase);
-  },[coinbase])
+    if(!coinbase){
+      actions.setMyOwnedNfts([]);
+      actions.setMyNfts([])
+    }
+    if(coinbase && client){
+      getMyNFTs(client,coinbase,netId)
+    }
+    setCheckingEvents(false);
+  },[coinbase,client])
   useEffect(() => {
     actions.setNetId(netId);
+    initiateClient(netId);
+    setGetData(false);
+    setCheckingEvents(false);
+    initiateContracts(netId,provider);
   },[netId])
   useEffect(() => {
     actions.setProfile(profile);
   },[profile])
+
   useEffect(() => {
     actions.setHashAvatars(hashavatars);
     actions.setGetTotalSupply(getTotalSupply);
     actions.setGetMetadata(getMetadata);
-
   },[hashavatars])
-  useEffect(() => {
-    if(nfts.length !==nftsLength){
-      actions.setNfts(nfts)
-      setNftsLength(nfts.length)
-    }
-  },[nfts,nftsLength])
-  useEffect(() => {
-    if(myOwnedNfts.length !==myOwnedNftsLength){
-      actions.setMyOwnedNfts(myOwnedNfts)
-      setMyOwnedNftsLength(myOwnedNfts.length)
-    }
-  },[myOwnedNfts,myOwnedNftsLength])
-  useEffect(() => {
-    if(myNfts.length !== myNftsLength){
-      actions.setMyNfts(myNfts)
-      setMyNftsLength(myNfts.length)
-    }
 
+  useEffect(() => {
+    if(!checkingEvents && hashavatars && !loadingNFTs){
+      checkEvents(coinbase);
+      setCheckingEvents(true);
+    }
+  },[coinbase,hashavatars,checkingEvents,loadingNFTs]);
+
+  useEffect(() => {
+    actions.setNfts(nfts)
+  },[nfts])
+
+  useEffect(() => {
+    actions.setMyOwnedNfts(myOwnedNfts)
+  },[myOwnedNfts])
+  useEffect(() => {
+    actions.setMyNfts(myNfts)
   },[myNfts])
+
   useEffect(() => {
     actions.setLoadingNFTs(loadingNFTs)
   },[loadingNFTs])
   useEffect(() => {
-    actions.setTotalSupply(totalSupply)
-  },[totalSupply])
+    actions.setLoadingMyNFTs(loadingMyNFTs)
+  },[loadingMyNFTs])
+  useEffect(() => {
+    actions.setTotalSupply(totalSupply);
+    if(!getData && client && totalSupply){
+      setGetData(true);
+      getAllNFTs(client,totalSupply,netId)
+    }
+  },[totalSupply,client,getData])
+
   useEffect(() => {
     actions.setCreators(creators)
   },[creators])
 
+  useEffect(() => {
+    actions.setIPFS(ipfs)
+  },[ipfs]);
+  useEffect(() => {
+    actions.setClient(client);
+  },[client]);
+
+  useMemo(() => {
+    if(!loadingNFTs && ipfs &&!pinning && nfts){
+      setPinning(true)
+      nfts.map(async string => {
+        const obj = JSON.parse(string);
+        await ipfs.pin.add(obj.tokenUri.replace("ipfs://",""))
+        await ipfs.pin.add(obj.metadata.image.replace("ipfs://",""))
+        return(string);
+      })
+    }
+  },[ipfs,nfts,loadingNFTs,pinning])
   return (
     <Main>
 
@@ -109,13 +174,10 @@ function App() {
             <Route path="/home" component={Home}/>
             <Route path="/all-avatars" component={AllAvatars}/>
             <Route path="/mint" component={Mint}/>
+            <Route path="/games" component={GamesPage}/>
+
             <Route path="/profile" component={Profile}/>
 
-
-            {/*
-              <Route path="/games" component={GamesPage}/>
-              <Route path="/feedbacks" component={Feedbacks}/>
-            */}
             <Route render={() => {
 
               return(
@@ -128,12 +190,13 @@ function App() {
         </Box>
         </Router>
         <footer style={{textAlign: "center",marginTop: "50px"}}>
-          <Link href="https://t.me/thehashavatars" external>Telegram <IconLink /></Link>
-          <Link href="https://twitter.com/thehashavatars" external>Twitter <IconLink /></Link>
-          <Link href="https://github.com/henrique1837/snowflakeshash-dapp" external>Github <IconLink /></Link>
-          <Link href="https://dweb.link/ipfs/bafybeibxurg3o5vo7n7xnr374fvscb6amb4jmojnx4e6zqmlwgrcjscoo4" external>Previous Version  <IconLink /></Link>
+          <Link href="https://t.me/thehashavatars" external>Telegram<IconLink /></Link>
+          <Link href="https://twitter.com/thehashavatars" external>Twitter<IconLink /></Link>
+          <Link href="https://github.com/henrique1837/snowflakeshash-dapp" external>Github<IconLink /></Link>
+          <Link href="https://www.xpollinate.io/" external>Bridge<IconLink /></Link>
 
         </footer>
+
 
       </AppContext.Provider>
 

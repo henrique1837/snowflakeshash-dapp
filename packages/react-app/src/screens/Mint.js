@@ -64,7 +64,7 @@ function Mint(){
         }
       });
       if(!cont){
-        alert("HashAvatar with that name already claimed");
+        alert("Snowflake with that name already claimed");
         setMintingMsg(null);
         setMinting(false);
         return;
@@ -133,22 +133,7 @@ function Mint(){
           });
           iconDom.innerHTML = '';
           iconDom.appendChild(icon)
-          /*
-          if(state.loadingNFTs && state.hashavatars){
-            const promises =[];
-            const totalSupply = await state.getTotalSupply();
-            for(let i = 1; i <= totalSupply; i++){
-              promises.push(state.getMetadata(i,state.hashavatars))
-            }
-            metadatas = await Promise.allSettled(promises);
-            alert(metadatas.length)
-            metadatas = metadatas.map(obj => {
-              return(JSON.stringify(obj))
-            })
-          } else {
 
-          }
-          */
           const metadatas = state.nfts.map(str => {
             const obj = JSON.parse(str);
             return(obj.metadata);
@@ -271,7 +256,7 @@ function Mint(){
           </center>
         }
         {
-          state.myNfts.length > 0 &&
+          state.myNfts?.length > 0 &&
           <>
           <h4>Snowflakes created by you</h4>
           <Row style={{textAlign: 'center'}}>
