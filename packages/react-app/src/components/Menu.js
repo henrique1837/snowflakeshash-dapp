@@ -21,11 +21,8 @@ function Menu(){
       if(location.pathname === "/all-avatars"){
         setSelected(2);
       }
-      if(location.pathname === "/games"){
-        setSelected(3);
-      }
       if(location.pathname === "/profile"){
-        setSelected(4);
+        setSelected(3);
       }
 
     }
@@ -90,7 +87,6 @@ function Menu(){
           <Link to="/home" style={{textDecoration: "none"}}>Informations</Link>,
           <Link to="/mint" style={{textDecoration: "none"}}><b>Generate Snowflake</b></Link>,
           <Link to="/all-avatars" style={{textDecoration: "none"}}>All Snowflakes</Link>,
-          <Link to="/games" style={{textDecoration: "none"}}>Games</Link>,
           state.coinbase && <Link to="/profile" style={{textDecoration: "none"}}>Profile</Link>
         ]
       }
@@ -110,11 +106,7 @@ function Menu(){
       <Redirect to={"/all-avatars"} />
     }
     {
-      selected === 3 &&
-      <Redirect to={"/games"} />
-    }
-    {
-      selected === 4 && state.coinbase &&
+      selected === 3 && state.coinbase &&
       <Redirect to={"/profile"} />
     }
 

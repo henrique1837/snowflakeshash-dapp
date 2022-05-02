@@ -74,7 +74,7 @@ function Mint(){
       const metadata = {
           name: name,
           image: `ipfs://${imgres[0].hash}`,
-          external_url: `https://snowflakeshash.com/`,
+          external_url: `https://dweb.link/ipns/snowflakeshash.crypto`,
           description: description
       }
       const res = await ipfs.add(JSON.stringify(metadata));

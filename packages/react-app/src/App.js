@@ -17,7 +17,6 @@ import { AppContext, useAppState } from './hooks/useAppState'
 import Home from "./screens/Home";
 import Mint from "./screens/Mint";
 import Profile from "./screens/Profile";
-import GamesPage from "./screens/Games";
 
 
 import AllAvatars from "./screens/AllAvatars";
@@ -174,7 +173,6 @@ function App() {
             <Route path="/home" component={Home}/>
             <Route path="/all-avatars" component={AllAvatars}/>
             <Route path="/mint" component={Mint}/>
-            <Route path="/games" component={GamesPage}/>
 
             <Route path="/profile" component={Profile}/>
 
