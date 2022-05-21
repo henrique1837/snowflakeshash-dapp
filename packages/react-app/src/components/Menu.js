@@ -1,5 +1,5 @@
 import React,{useState,useMemo} from "react";
-import { Button,IdentityBadge,EthIdenticon,Header,Tabs,IconLink } from '@aragon/ui';
+import { Button,IdentityBadge,EthIdenticon,Header,Tabs,IconLink,Link as ALink,IconExternal } from '@aragon/ui';
 import { useAppContext } from '../hooks/useAppState'
 import { Link,Redirect,useLocation } from 'react-router-dom';
 
@@ -87,7 +87,8 @@ function Menu(){
           <Link to="/home" style={{textDecoration: "none"}}>Informations</Link>,
           <Link to="/mint" style={{textDecoration: "none"}}><b>Generate Snowflake</b></Link>,
           <Link to="/all-avatars" style={{textDecoration: "none"}}>All Snowflakes</Link>,
-          state.coinbase && <Link to="/profile" style={{textDecoration: "none"}}>Profile</Link>
+          state.coinbase && <Link to="/profile" style={{textDecoration: "none"}}>Profile</Link>,
+          <Link to="https://dweb.link/ipns/thevibes-space.crypto/#/thespace3d-v0" style={{textDecoration: "none"}}>TheVibes Space Games <IconExternal/></Link>
         ]
       }
       selected={selected}

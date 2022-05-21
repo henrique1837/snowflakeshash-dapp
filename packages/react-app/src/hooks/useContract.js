@@ -243,8 +243,10 @@ function useContract() {
         `
         let totalQueries = Number(id/100).toFixed(0);
         let actualQuery = 1;
-        if(totalQueries < actualQuery){
-          totalQueries = actualQuery
+        if(totalQueries < Number(id/100).toFixed(0)){
+          totalQueries = Number(id/100).toFixed(0);
+        } else if(totalQueries > Number(id/100).toFixed(0)){
+          totalQueries = Number(totalQueries + 1).toFixed(0);
         }
         while(actualQuery <= totalQueries){
           const results = await client.query({
