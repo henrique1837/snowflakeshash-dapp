@@ -88,7 +88,7 @@ function Menu(){
           <Link to="/mint" style={{textDecoration: "none"}}><b>Generate Snowflake</b></Link>,
           <Link to="/all-avatars" style={{textDecoration: "none"}}>All Snowflakes</Link>,
           state.coinbase && <Link to="/profile" style={{textDecoration: "none"}}>Profile</Link>,
-          <Link to="https://dweb.link/ipns/thevibes-space.crypto/#/thespace3d-v0" style={{textDecoration: "none"}}>TheVibes Space Games <IconExternal/></Link>
+          <ALink href="https://dweb.link/ipns/thevibes-space.crypto/#/thespace3d-v0" style={{textDecoration: "none"}} external>TheVibes Space Games <IconExternal/></ALink>
         ]
       }
       selected={selected}

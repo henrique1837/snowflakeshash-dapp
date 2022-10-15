@@ -46,7 +46,7 @@ function Profile(){
                           <p><b>{obj.metadata.name}</b></p>
                         </div>
                         <div>
-                          <img alt="" src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                          <img alt="" src={obj.metadata?.image.replace("ipfs://",state.gateways[Math.floor(Math.random()*state.gateways.length)])} width="150px"/>
                         </div>
                       </center>
 

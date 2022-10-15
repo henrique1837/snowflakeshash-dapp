@@ -2,7 +2,7 @@ import { useCallback,useMemo, useState,useEffect } from "react";
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 
-import { getLegacy3BoxProfileAsBasicProfile } from '@ceramicstudio/idx';
+import getProfile from './useProfile';
 
 //import WalletConnectProvider from "@walletconnect/web3-provider";
 
@@ -57,7 +57,7 @@ function useWeb3Modal(config = {}) {
       setCoinbase();
       setProfile()
       setNetId(0x64);
-      setProvider(new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com/"));
+      setProvider(new ethers.providers.JsonRpcProvider("https://rpc.gnosischain.com/"));
     },
     [web3Modal],
   );
@@ -88,13 +88,6 @@ function useWeb3Modal(config = {}) {
         logoutOfWeb3Modal();
       });
       setConnecting(false);
-      let profile;
-      try{
-        profile = await getLegacy3BoxProfileAsBasicProfile(newCoinbase);
-        setProfile(profile);
-      } catch(err){
-
-      }
       return;
     } catch(err){
       console.log(err);
@@ -118,7 +111,7 @@ function useWeb3Modal(config = {}) {
   useMemo(() => {
 
     if(!noProvider && !autoLoaded && !web3Modal.cachedProvider && !connecting){
-      setProvider(new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com"));
+      setProvider(new ethers.providers.JsonRpcProvider("https://rpc.gnosischain.com/"));
       setNetId(0x64);
       setNoProvider(true);
       setAutoLoaded(true);
@@ -132,14 +125,19 @@ function useWeb3Modal(config = {}) {
     connecting
    ]);
 
-  useEffect(() => {
-    if(coinbase){
-      getLegacy3BoxProfileAsBasicProfile(coinbase)
-      .then(profile => {
-        setProfile(profile);
-      });
-    }
-  },[coinbase])
+   useEffect(() => {
+     async function getNewProfile(){
+       const newProfile = await getProfile(coinbase);
+       setProfile(newProfile);
+     }
+     if(coinbase){
+       try{
+         getNewProfile()
+       } catch(err){
+
+       }
+     }
+   },[coinbase])
 
   return({provider, loadWeb3Modal, logoutOfWeb3Modal,coinbase,netId,profile,connecting});
 }

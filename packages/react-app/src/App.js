@@ -7,6 +7,9 @@ import {
 } from 'react-router-dom';
 import { Main,Box,Link,IconLink } from '@aragon/ui';
 
+import { ChatBox } from '@orbisclub/modules'
+import "@orbisclub/modules/dist/index.modern.css";
+
 import useWeb3Modal from "./hooks/useWeb3Modal";
 import useContract from "./hooks/useContract";
 import useClient from "./hooks/useGraphClient";
@@ -138,7 +141,7 @@ function App() {
   return (
     <Main>
 
-
+      <ChatBox context="kjzl6cwe1jw1475lav0kq3j39dbx99mywfzas1jpc957uxel6dro9nlos1zkbd6" poweredByOrbis="black" />
       <AppContext.Provider value={{ state, actions }}>
 
         <Router>

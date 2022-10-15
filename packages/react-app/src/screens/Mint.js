@@ -1,17 +1,17 @@
 import React,{useMemo,useState,useCallback} from "react";
 
 import { Container,Row,Col,Spinner } from 'react-bootstrap';
-import { Button,TextInput,TransactionBadge,ProgressBar,IconLink,LoadingRing } from '@aragon/ui';
+import { Button,TextInput,TransactionBadge,ProgressBar,IconLink,LoadingRing,Link } from '@aragon/ui';
 
-import IPFS from 'ipfs-http-client-lite';
+import { NFTStorage, Blob } from 'nft.storage'
 import { ethers } from "ethers";
 
 import { useAppContext } from '../hooks/useAppState'
 import hydroIdenticon from '../assets/snowflakes.js';
 
-const ipfs = IPFS({
-  apiUrl: 'https://ipfs.infura.io:5001'
-})
+const NFT_STORAGE_TOKEN = process.env.REACT_APP_NFT_STORAGE_API
+const client = new NFTStorage({ token: NFT_STORAGE_TOKEN })
+
 function Mint(){
   const { state } = useAppContext();
 
@@ -70,17 +70,27 @@ function Mint(){
         return;
       }
       setMintingMsg(<p><small>Storing image and metadata at IPFS ... </small></p>);
-      const imgres = await ipfs.add(iconDom.innerHTML);
+      //const imgres = await ipfs.add(iconDom.innerHTML);
+      const storageResImg = await NFTStorage.encodeBlob(new Blob([iconDom.innerHTML]));
+      const imgUri = await client.storeCar(storageResImg.car);
+
       const metadata = {
           name: name,
-          image: `ipfs://${imgres[0].hash}`,
-          external_url: `https://dweb.link/ipns/snowflakeshash.crypto`,
-          description: description
+          description: description,
+          image: `ipfs://${imgUri}`,
+          external_url: `https://dweb.link/ipns/snowflakeshash.crypto`
       }
-      const res = await ipfs.add(JSON.stringify(metadata));
-      const uri = res[0].hash;
+      //const res = await ipfs.add(JSON.stringify(metadata));
+      //const uri = res[0].hash;
+      const storageRes = await NFTStorage.encodeBlob(new Blob([JSON.stringify(metadata)]));
+      const uri = await client.storeCar(storageRes.car);
       console.log(uri)
-      setMintingMsg(<p><small>Approve transaction ... </small></p>);
+      setMintingMsg(
+        <>
+        <p><small>Metadata stored at <Link href={`${state.gateways[Math.floor(Math.random()*state.gateways.length)]}${uri}`} external><IconLink/>{uri}</Link>.</small></p>
+        <p><small>Approve transaction ... </small></p>
+        </>
+      );
       const id = Number(await state.hashavatars.totalSupply()) + 1;
       console.log(id)
       const fees = [{
@@ -109,11 +119,11 @@ function Mint(){
       },10000)
 
     } catch(err){
-      setMintingMsg(<p><small>{err.message}</small></p>)
+      setMintingMsg(<p style={{overflowX: "auto"}}><small>{err.message.split("reverted: ")[1]?.split('",')[0] ? err.message.split("reverted: ")[1].split('",')[0] : err.message }</small></p>)
       setTimeout(() => {
         setMinting(false);
         setMintingMsg(null);
-      },2000)
+      },4000)
     }
   },[state,state.getMetadata,state.getTotalSupply,state.hashavatars,iconDom]);
 
@@ -270,7 +280,7 @@ function Mint(){
                       <p>{obj.metadata.name}</p>
                     </div>
                     <div>
-                      <img src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                      <img src={obj.metadata?.image.replace("ipfs://",state.gateways[Math.floor(Math.random()*state.gateways.length)])} width="150px"/>
                     </div>
                   </center>
                 </Col>

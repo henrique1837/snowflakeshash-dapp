@@ -1,26 +1,19 @@
-import { useMemo, useState } from "react";
-import { getLegacy3BoxProfileAsBasicProfile } from '@ceramicstudio/idx';
+import { Orbis } from "@orbisclub/orbis-sdk";
 
-import useWeb3Modal from './useWeb3Modal.js';
+
+const orbis = new Orbis();
 
 // Enter a valid infura key here to avoid being rate limited
 // You can get a key for free at https://infura.io/register
 
 
-function useProfile() {
-  const {coinbase} = useWeb3Modal();
-  const [profile,setProfile] = useState(null);
-  useMemo(async () => {
-    if (coinbase && !profile) {
-      try{
-        const newProfile = await getLegacy3BoxProfileAsBasicProfile(coinbase);
-        setProfile(newProfile);
-      } catch(err){
-        console.log(err)
-      }
-    }
-  }, [coinbase,profile]);
-  return({profile})
+const getProfile = async(address) => {
+  try{
+    let { data, error } = await orbis.getDids(address);
+    return(data[0])
+  } catch(err){
+
+  }
 }
 
-export default useProfile;
+export default getProfile;

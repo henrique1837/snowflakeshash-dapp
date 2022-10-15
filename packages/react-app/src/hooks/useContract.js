@@ -1,9 +1,9 @@
 import { useCallback,useMemo,useEffect, useState } from "react";
-import { getLegacy3BoxProfileAsBasicProfile } from '@ceramicstudio/idx';
 import { addresses, abis } from "@project/contracts";
 import { gql } from '@apollo/client';
 import { ethers } from "ethers";
 
+import getProfile from './useProfile';
 
 function useContract() {
 
@@ -52,7 +52,7 @@ function useContract() {
       }
     });
     if(getCreatorProfile){
-      getLegacy3BoxProfileAsBasicProfile(creator).then(profile => {
+      getProfile(creator).then(profile => {
         const creatorProfile = {
           address: creator,
           profile: profile
@@ -64,7 +64,6 @@ function useContract() {
         }
 
       }).catch(err => {
-        console.log(err);
         const creatorProfile = {
           address: creator,
           profile: undefined

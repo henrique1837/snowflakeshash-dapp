@@ -47,7 +47,7 @@ function AllAvatars(){
                               <img
                                 alt=""
                                 rounded
-                                src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")}
+                                src={obj.profile.image.original.src.replace("ipfs://",state.gateways[Math.floor(Math.random()*state.gateways.length)])}
                                 style={{width: '250px',heigth: "250px"}}
                               />
                             </div>
@@ -118,7 +118,7 @@ function AllAvatars(){
                               entity={obj.creator}
                               networkType={state.netId === 4 ? "rinkeby" : "xdai"}
                               icon={obj.profile?.image ?
-                                    <img alt="" src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
+                                    <img alt="" src={obj.profile.image.original.src.replace("ipfs://",state.gateways[Math.floor(Math.random()*state.gateways.length)])} style={{width: '25px'}} /> :
                                     <EthIdenticon address={obj.creator}/>
                               }
                             />
@@ -144,7 +144,7 @@ function AllAvatars(){
                           <p><b>{obj.metadata.name}</b></p>
                         </div>
                         <div>
-                          <img alt="" src={obj.metadata?.image.replace("ipfs://","https://ipfs.io/ipfs/")} width="150px"/>
+                          <img alt="" src={obj.metadata?.image.replace("ipfs://",state.gateways[Math.floor(Math.random()*state.gateways.length)])} width="150px"/>
                         </div>
                       </center>
                     </OverlayTrigger>
@@ -177,14 +177,13 @@ function AllAvatars(){
                   return(
                     <div>
                     <Link href="" onClick={() => setFiltered(obj.address)}>
-
                       <IdentityBadge
-                        label={obj.profile?.name && obj.profile.name}
+                        label={obj.profile?.username}
                         entity={obj.address}
                         badgeOnly
                         networkType={state.netId === 4 ? "rinkeby" : "xdai"}
-                        icon={obj.profile?.image ?
-                              <img alt="" src={obj.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
+                        icon={obj.profile?.details?.profile?.image ?
+                              <img src={obj.details.profile.image.replace("ipfs://",state.gateways[Math.floor(Math.random()*state.gateways.length)])} style={{width: '25px'}} /> :
                               <EthIdenticon address={obj.address}/>
                         }
                       />
