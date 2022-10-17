@@ -65,11 +65,11 @@ function Profile(){
             <div>
               <div>
               <IdentityBadge
-                label={state.profile?.name}
+                label={state.profile?.username}
                 entity={state.coinbase}
                 connectedAccount
                 networkType={state.netId === 4 ? "rinkeby" : "xdai"}
-                popoverTitle={state.profile?.name }
+                popoverTitle={state.profile?.username }
               />
               </div>
               {

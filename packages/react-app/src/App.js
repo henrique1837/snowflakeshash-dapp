@@ -176,10 +176,10 @@ function App() {
         </Box>
         </Router>
         <footer style={{textAlign: "center",marginTop: "50px"}}>
-          <Link href="https://t.me/thehashavatars" external>Telegram<IconLink /></Link>
           <Link href="https://twitter.com/thehashavatars" external>Twitter<IconLink /></Link>
           <Link href="https://github.com/henrique1837/snowflakeshash-dapp" external>Github<IconLink /></Link>
-          <Link href="https://www.xpollinate.io/" external>Bridge<IconLink /></Link>
+          <Link href="https://bridge.connext.network/" external>Bridge<IconLink /></Link>
+          <Link href="https://app.orbis.club/" external>OrbisClub<IconLink /></Link>
 
         </footer>
 

@@ -35,10 +35,10 @@ function AllAvatars(){
                         <div>
                           <div>
                           <IdentityBadge
-                            label={obj.profile?.name}
+                            label={obj.profile?.username}
                             entity={obj.address}
                             networkType={state.netId === 4 ? "rinkeby" : "xdai"}
-                            popoverTitle={obj.profile?.name }
+                            popoverTitle={obj.profile?.username }
                           />
                           </div>
                           {
@@ -104,7 +104,7 @@ function AllAvatars(){
 
                   const popover =
                     <Popover id={`popover-${obj.returnValues._id}`} class=".hashover">
-                      <Popover.Header as="h3">{obj.metadata.name}</Popover.Header>
+                      <Popover.Header as="h3">{obj.metadata.username}</Popover.Header>
                       <Popover.Body>
                         <p>ID: {obj.returnValues._id}</p>
                         {
@@ -113,7 +113,7 @@ function AllAvatars(){
                         <p>Creator: {
                           <Link href="" onClick={() => setFiltered(obj.creator)}>
                             <IdentityBadge
-                              label={obj.profile?.name}
+                              label={obj.profile?.username}
                               badgeOnly
                               entity={obj.creator}
                               networkType={state.netId === 4 ? "rinkeby" : "xdai"}

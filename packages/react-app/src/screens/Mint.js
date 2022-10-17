@@ -125,7 +125,15 @@ function Mint(){
         setMintingMsg(null);
       },4000)
     }
-  },[state,state.getMetadata,state.getTotalSupply,state.hashavatars,iconDom]);
+  },[
+    state,
+    state.getMetadata,
+    state.getTotalSupply,
+    state.hashavatars,
+    iconDom,
+    name,
+    description
+  ]);
 
 
   const handleOnChange = useCallback(async (e) => {

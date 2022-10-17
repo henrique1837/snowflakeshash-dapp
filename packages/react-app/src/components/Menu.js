@@ -57,10 +57,10 @@ function Menu(){
         {
           state.coinbase ?
           <IdentityBadge
-            customLabel={state.profile?.name}
+            customLabel={state.profile?.username}
             entity={state.coinbase}
             connectedAccount
-            popoverTitle={state.profile?.name}
+            popoverTitle={state.profile?.username}
             icon={state.profile?.image ?
                   <img alt="" src={state.profile.image.original.src.replace("ipfs://","https://ipfs.io/ipfs/")} style={{width: '25px'}} /> :
                   <EthIdenticon address={state.coinbase}/>
