@@ -239,6 +239,7 @@ function Mint(){
                   state.hashavatars && !state.connecting ?
                   (
                     canMint ?
+                    name &&
                     <Button onClick={mint}>Claim</Button> :
                     <p>HashAvatar with that name already claimed</p>
                   ) :
